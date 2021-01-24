@@ -62,7 +62,6 @@ def get_species(db: Session,
     result = db.query(response_body)
     arguments = locals()
     filters = []
-
     try:
         for key, value in arguments.items():  # type: str, any
             if value is not None:
@@ -83,7 +82,7 @@ def get_species(db: Session,
                 if key == "version":
                     filters.append(getattr(models.Species_profile, key) == value)
     except Exception:
-        raise Exception("Invalid key/value pair")
+        raise HTTPException(status_code=403, detail="Invalid key/value pair")
 
     result = result.filter(*filters).order_by(sort)
 
@@ -398,7 +397,7 @@ def get_proteins(db: Session,
                 if key == "vog_id":
                     filters.append(getattr(models.Protein_profile, key).in_(value))
     except Exception:
-        raise Exception("Invalid key/value pair")
+        raise HTTPException(status_code=403, detail="Invalid key/value pair")
 
     result = result.filter(*filters).order_by(sort)
 

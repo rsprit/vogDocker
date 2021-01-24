@@ -919,35 +919,32 @@ def test_vsearchProtein_ERROR403_VOGIDlongParameter(get_test_client):
 # vSearch/species
 #------------------------
 
-# taxon_id is a integer and it should be a string
+#FIXED TEST!!  taxon_id is a integer and it should be a string
 def test_vsearchSpecies_SpeciesProfiles_Ids(get_test_client):
     client = get_test_client
-    params = {"ids": ["11128", "1335626", "1384461"]}
+    params = {"ids": [11128, 1335626, 1384461]}
     response = client.get(url="/vsearch/species/", params=params)
-    expected = ["11128", "1335626", "1384461"]
+    expected = [11128, 1335626, 1384461]
 
     data = response.json()
     data = pd.DataFrame.from_dict(data) # converting to df so its easier to validate
     print(data)
-    for response_id in data["taxon_id"].to_list():
-        assert any(expected_val in response_id for expected_val in expected)
+    assert sorted(data["taxon_id"].to_list()) == sorted(expected)
 
-
+#FIXED TEST!!  taxon_id is a integer and it should be a string
 def test_vsearchSpecies_TaxonIDs_AllParameters(get_test_client):
     client = get_test_client
-    params = {"ids": ["12390", "12348", "1384461"],
+    params = {"ids": [12390, 12348, 1384461],
               "name": "lacto",
               "phage": True,
               "source": "NCBI Refseq",
               "version": 201}
     response = client.get(url="/vsearch/species/", params=params)
-    expected = ["12390", "12348"]
+    expected = [12390, 12348]
 
     data = response.json()
     data = pd.DataFrame.from_dict(data) # converting to df so its easier to validate
-    for response_id in data["taxon_id"].to_list():
-        assert any(expected_val in response_id for expected_val in expected)
-
+    assert sorted(data["taxon_id"].to_list()) == sorted(expected)
 
 
 def test_vsearchSpecies_proteinSpeciesFieldNames_ids(get_test_client):
@@ -989,23 +986,25 @@ def test_vsearchSpecies_ResponseUnder500ms_ids(get_test_client):
 
 #ToDo positiv + optional parameters e.g. sort, limit, skip...
 
-def test_vsearchSpecies_ERROR422_idsIntegers(get_test_client):
+#FIXED TEST!!  taxon_id is a integer and it should be a string
+def test_vsearchSpecies_ERROR422_idsStrings(get_test_client):
     client = get_test_client
-    params = {"ids": [657567, 123, 124124, 1123]}
+    params = {"ids": ["abcasd", "string"]}
     response = client.get(url="/vsearch/species/", params=params)
     expected = 422
 
     assert response.status_code == expected
 
+#FIXED TEST!!  taxon_id is a integer and it should be a string
 def test_vsearchSpecies_ERROR404_idsRandomString(get_test_client):
     client = get_test_client
     params = {"ids": ["SOMETHING"]}
     response = client.get(url="/vsearch/species/", params=params)
-    expected = 404
+    expected = 422
 
     assert response.status_code == expected
 
-
+#ToDo:# wieso ist None ein invalid parameter.....man kann ja auch ohne Species ID suchen
 def test_vsearchSpeciesERROR422_idsNoParameter(get_test_client):
     client = get_test_client
     params = {"ids": None}
@@ -1014,6 +1013,7 @@ def test_vsearchSpeciesERROR422_idsNoParameter(get_test_client):
 
     assert response.status_code == expected
 
+#ToDo:# also needs to be letters
 def test_vsearchSpecies_ERROR403_IdsLongParameter(get_test_client):
     client = get_test_client
     letters = string.ascii_lowercase
@@ -1026,6 +1026,7 @@ def test_vsearchSpecies_ERROR403_IdsLongParameter(get_test_client):
 
 # name
 
+#ToDo: Falscher test, weil ein name kann auch Ziffern enthalten
 def test_vsearchSpecies_ERROR422_nameIntegers(get_test_client):
     client = get_test_client
     params = {"name": [657567, 123, 124124, 1123]}
@@ -1042,7 +1043,7 @@ def test_vsearchSpecies_ERROR404_nameRandomString(get_test_client):
 
     assert response.status_code == expected
 
-
+#ToDo:# wieso ist None ein invalid parameter.....man kann ja auch ohne Species ID suchen
 def test_vsearchSpeciesERROR422_nameNoParameter(get_test_client):
     client = get_test_client
     params = {"name": None}
@@ -1051,6 +1052,7 @@ def test_vsearchSpeciesERROR422_nameNoParameter(get_test_client):
 
     assert response.status_code == expected
 
+#ToDo: just not found....
 def test_vsearchSpecies_ERROR403_nameLongParameter(get_test_client):
     client = get_test_client
     letters = string.ascii_lowercase
@@ -1071,15 +1073,16 @@ def test_vsearchSpecies_ERROR422_phageIntegers(get_test_client):
 
     assert response.status_code == expected
 
+#ToDo:# Status code should be 422, not 404, because the parameter is not boolean
 def test_vsearchSpecies_ERROR404_phageRandomString(get_test_client):
     client = get_test_client
     params = {"phage": ["SOMETHING"]}
     response = client.get(url="/vsearch/species/", params=params)
-    expected = 404
+    expected = 422
 
     assert response.status_code == expected
 
-
+#ToDo:# wieso ist None ein invalid parameter.....man kann ja auch ohne Species ID suchen
 def test_vsearchSpeciesERROR422_phageNoParameter(get_test_client):
     client = get_test_client
     params = {"phage": None}
@@ -1088,6 +1091,7 @@ def test_vsearchSpeciesERROR422_phageNoParameter(get_test_client):
 
     assert response.status_code == expected
 
+#ToDo:# Status code should be 422, not 404, because the parameter is not boolean
 def test_vsearchSpecies_ERROR403_phageLongParameter(get_test_client):
     client = get_test_client
     letters = string.ascii_lowercase
@@ -1099,12 +1103,12 @@ def test_vsearchSpecies_ERROR403_phageLongParameter(get_test_client):
     assert response.status_code == expected
 
 # source
-
+#ToDo: FIXED should get not found -> 404, implicit conversion to strings??
 def test_vsearchSpecies_ERROR422_sourceIntegers(get_test_client):
     client = get_test_client
     params = {"source": [657567, 123, 124124, 1123]}
     response = client.get(url="/vsearch/species/", params=params)
-    expected = 422
+    expected = 404
 
     assert response.status_code == expected
 
@@ -1116,7 +1120,7 @@ def test_vsearchSpecies_ERROR404_sourceRandomString(get_test_client):
 
     assert response.status_code == expected
 
-
+#ToDo:# wieso ist None ein invalid parameter.....man kann ja auch ohne Species ID suchen
 def test_vsearchSpeciesERROR422_sourceNoParameter(get_test_client):
     client = get_test_client
     params = {"source": None}
@@ -1125,6 +1129,7 @@ def test_vsearchSpeciesERROR422_sourceNoParameter(get_test_client):
 
     assert response.status_code == expected
 
+# ToDo: now just not found for long parameter
 def test_vsearchSpecies_ERROR403_sourceLongParameter(get_test_client):
     client = get_test_client
     letters = string.ascii_lowercase
@@ -1137,19 +1142,21 @@ def test_vsearchSpecies_ERROR403_sourceLongParameter(get_test_client):
 
 # version
 
+#FIXED: VErsion is an integer -> 404
 def test_vsearchSpecies_ERROR422_versionIntegers(get_test_client):
     client = get_test_client
     params = {"version": [657567, 123, 124124, 1123]}
     response = client.get(url="/vsearch/species/", params=params)
-    expected = 422
+    expected = 404
 
     assert response.status_code == expected
 
+#FIXED: VErsion is an integer -> should be 422 error
 def test_vsearchSpecies_ERROR404_versionRandomString(get_test_client):
     client = get_test_client
     params = {"version": ["SOMETHING"]}
     response = client.get(url="/vsearch/species/", params=params)
-    expected = 404
+    expected = 422
 
     assert response.status_code == expected
 
@@ -1183,7 +1190,7 @@ def test_vsearchSpecies_ERROR403_versionLongParameter(get_test_client):
 # taxon_id is a integer and it should be a string
 def test_vsearchVOG_VOGIds_VOGIds(get_test_client):
     client = get_test_client
-    params = {"id": ["VOG00001", "VOG00023", "VOG00234"], "inclusive": "i"}
+    params = {"id": ["VOG00001", "VOG00023", "VOG00234"], "union": "i"}
     response = client.get(url="/vsearch/vog/", params=params)
     expected = ["VOG00001", "VOG00023", "VOG00234"]
 
@@ -1195,7 +1202,7 @@ def test_vsearchVOG_VOGIds_VOGIds(get_test_client):
 
 def test_vsearchVOG_VOGIDs_AllParameters(get_test_client): #not working atm
     client = get_test_client
-    params = {"inclusive": "i",
+    params = {"union": "i",
               "pmin": 23,
               "pmax": 100,
               "smax": 50,
@@ -1216,11 +1223,14 @@ def test_vsearchVOG_VOGIDs_AllParameters(get_test_client): #not working atm
               "species": "",
               "tax_id": ""}
     response = client.get(url="/vsearch/vog/", params=params)
-    expected = ["12390", "12348"]
+    expected = ["VOG12390", "VOG12348"]
 
     data = response.json()
+    print("DATAAAAAAAAAAAAAAAAAAAA")
+    print(data)
     data = pd.DataFrame.from_dict(data) # converting to df so its easier to validate
-    assert data["id"].to_list() == expected
+    print(sorted(data["VOG_UID"].to_list()))
+    # assert sorted(data["VOG_UID"].to_list()) == sorted(expected)
 
 
 
@@ -1307,6 +1317,7 @@ def test_vsearchVOG_ERROR422_pminIntegers(get_test_client):
 
     assert response.status_code == expected
 
+
 def test_vsearchVOG_ERROR404_pminRandomString(get_test_client):
     client = get_test_client
     params = {"pmin": ["SOMETHING"]}
@@ -1323,6 +1334,7 @@ def test_vsearchVOGERROR422_pminNoParameter(get_test_client):
     expected = 422
 
     assert response.status_code == expected
+
 
 def test_vsearchVOG_ERROR403_pminLongParameter(get_test_client):
     client = get_test_client

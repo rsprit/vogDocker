@@ -54,7 +54,7 @@ def mock_species_profile():
         page= True,
         source= "NCBI",
         version= 1,
-        protein_names = ["p1", "p2", "p3"]
+        protein_names = ["p1", "p2", "p3"])
 
     return species_profile
 

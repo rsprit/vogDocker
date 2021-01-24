@@ -1,3 +1,4 @@
+import os
 
 from API_requests import *
 import sys
@@ -166,6 +167,9 @@ def main():
         if args.command == 'vfetch':
             if not sys.stdin.isatty():
                 id = args.id.read().split()
+                # check if df
+                if id[1] == '0':
+                    id = id[2::2]
                 if id[0][0] == '[':
                     raise Exception("The search output cannot be 'json' when piping.")
             else:
@@ -192,6 +196,9 @@ def main():
             elif args.return_object == 'protein' or args.return_object == 'vog':
                 if not sys.stdin.isatty():
                     id = args.id.read().split()
+                    #check if df
+                    if id[1] == '0':
+                        id = id[2::2]
                     if id[0][0] == '[':
                         raise Exception("The search output cannot be 'json' when piping.")
                 else:
@@ -214,6 +221,7 @@ if __name__ == '__main__':
         main()
     except Exception as ex:
         print("Request has failed. {0}".format(ex), file=sys.stderr)
+
 
 #ToDo: large requests not working. now working !
 """

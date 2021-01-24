@@ -5,7 +5,6 @@ from .functionality import *
 from .database import SessionLocal
 from sqlalchemy.orm import Session
 from fastapi import Depends, FastAPI, Query
-# from .schemas import VOG_profile, Protein_profile, VOG_UID, Species_ID, Species_profile, ProteinID, AA_seq, NT_seq
 from .schemas import *
 from . import models
 import logging
@@ -14,6 +13,7 @@ import logging
 log = logging.getLogger(__name__)
 
 api = FastAPI()
+
 
 # uncomment when we have a domain
 # redirected_app = HTTPToHTTPSRedirectMiddleware(api, host="example_domain.com")
@@ -57,7 +57,7 @@ def search_species(db: Session = Depends(get_db),
         log.error(exc)
         # check if it was a pymysql error:
         if "pymysql" in exc.args[0]:
-            raise HTTPException(status_code=400, detail="Database error. See log file for details.")
+            raise HTTPException(status_code=500, detail="Database error. See log file for details.")
         raise HTTPException(status_code=400, detail="Species search not successful. Error: {0}".format(exc))
 
     if not species:
@@ -89,12 +89,12 @@ async def get_summary_species(taxon_id: Optional[List[int]] = Query(None), db: S
     except Exception as exc:
         # check if it was a pymysql error:
         if "pymysql" in exc.args[0]:
-            raise HTTPException(status_code=400, detail="Database error. See log file for details.")
+            raise HTTPException(status_code=500, detail="Database error. See log file for details.")
         raise HTTPException(status_code=400, detail="Vsummary not successful. Error: {0}".format(exc))
 
     if not len(species_summary) == len(taxon_id):
         log.warning("At least one of the species was not found, or there were duplicates.\n"
-                        "IDs given: {0}".format(taxon_id))
+                    "IDs given: {0}".format(taxon_id))
 
     if not species_summary:
         log.error("No matching Species found")
@@ -129,8 +129,6 @@ def search_vog(db: Session = Depends(get_db),
                tax_id: Optional[Set[int]] = Query(None),
                sort: Optional[str] = 'VOG_ID',
                union: Optional[str] = 'i'):
-
-
     """
     This functions searches a database and returns a list of vog unique identifiers (UIDs) for records in that database
     which meet the search criteria.
@@ -182,7 +180,7 @@ async def get_summary_vog(id: List[str] = Query(None), db: Session = Depends(get
     except Exception as exc:
         # check if it was a pymysql error:
         if "pymysql" in exc.args[0]:
-            raise HTTPException(status_code=400, detail="Database error. See log file for details.")
+            raise HTTPException(status_code=500, detail="Database error. See log file for details.")
         else:
             raise Exception(exc)
 
@@ -220,7 +218,7 @@ async def search_protein(db: Session = Depends(get_db),
         log.error(exc)
         # check if it was a pymysql error:
         if "pymysql" in exc.args[0]:
-            raise HTTPException(status_code=400, detail="Database error. See log file for details.")
+            raise HTTPException(status_code=500, detail="Database error. See log file for details.")
         raise HTTPException(status_code=400, detail="Protein search not successful. Error: {0}".format(exc))
 
     if not proteins:
@@ -253,12 +251,12 @@ async def get_summary_protein(id: List[str] = Query(None), db: Session = Depends
     except Exception as exc:
         # check if it was a pymysql error:
         if "pymysql" in exc.args[0]:
-            raise HTTPException(status_code=400, detail="Database error. See log file for details.")
+            raise HTTPException(status_code=500, detail="Database error. See log file for details.")
         raise HTTPException(status_code=400, detail="Vsummary not successful. Error: {0}".format(exc))
 
     if not len(protein_summary) == len(id):
         log.warning("At least one of the proteins was not found, or there were duplicates.\n"
-                        "IDs given: {0}".format(id))
+                    "IDs given: {0}".format(id))
 
     if not protein_summary:
         log.error("No matching Proteins found")
@@ -284,7 +282,7 @@ async def fetch_vog(id: List[str] = Query(None)):
     except Exception as exc:
         log.error("MSA fetching not successful. Parameters: {0}".format(id))
         log.error(exc)
-        raise HTTPException(status_code=400, detail="MSA search not successful. Error: {0}".format(exc))
+        raise HTTPException(status_code=500, detail="MSA search not successful. Error: {0}".format(exc))
 
     if not vog_hmm:
         log.error("No HMM found.")
@@ -343,9 +341,7 @@ async def fetch_protein_faa(db: Session = Depends(get_db), id: List[str] = Query
 
     if not len(protein_faa) == len(id):
         log.warning("At least one of the proteins was not found, or there were duplicates.\n"
-                        "IDs given: {0}".format(id))
-        # raise HTTPException(status_code=404, detail="At least one of the protein IDs was not found, "
-        #                                             "or there might be duplicates")
+                    "IDs given: {0}".format(id))
 
     if not protein_faa:
         log.error("No Proteins found with the given IDs")
@@ -353,6 +349,7 @@ async def fetch_protein_faa(db: Session = Depends(get_db), id: List[str] = Query
     else:
         log.info("Aminoacid sequences have been retrieved.")
     return protein_faa
+
 
 @api.get("/vfetch/protein/fna",
          response_model=List[NT_seq])
@@ -376,7 +373,7 @@ async def fetch_protein_fna(db: Session = Depends(get_db), id: List[str] = Query
 
     if not len(protein_fna) == len(id):
         log.warning("At least one of the proteins was not found, or there were duplicates.\n"
-                        "IDs given: {0}".format(id))
+                    "IDs given: {0}".format(id))
 
     if not protein_fna:
         log.error("No Proteins found with the given IDs")
