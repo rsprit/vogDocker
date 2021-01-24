@@ -111,7 +111,7 @@ def find_vogs_hmm_by_uid(uid):
     try:
         tar = tarfile.open(file_name, "r:gz")
     except FileNotFoundError:
-        raise FileNotFoundError("File not found: {0}".format(file_name))
+        raise HTTPException(status_code=500, detail="File not found: {0}".format(file_name))
 
     vog_hmm_list = []
     if uid:
@@ -129,7 +129,8 @@ def find_vogs_hmm_by_uid(uid):
             file = f.read()
             hmm_response.append(file)
         else:
-            raise FileNotFoundError("File was not found.")
+            raise HTTPException(status_code=500, detail="File not found.")
+            # raise FileNotFoundError("File was not found.")
 
     return hmm_response
 
@@ -141,7 +142,7 @@ def find_vogs_msa_by_uid(uid):
     try:
         tar = tarfile.open(file_name, "r:gz")
     except FileNotFoundError:
-        raise FileNotFoundError("File not found: {0}".format(file_name))
+        raise HTTPException(status_code=500, detail="File not found: {0}".format(file_name))
 
     vog_msa_list = []
     if uid:
@@ -159,7 +160,7 @@ def find_vogs_msa_by_uid(uid):
             file = f.read()
             msa_response.append(file)
         else:
-            raise FileNotFoundError("File was not found.")
+            raise HTTPException(status_code=500, detail="File not found.")
     return msa_response
 
 
