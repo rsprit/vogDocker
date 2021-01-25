@@ -435,7 +435,7 @@ def find_protein_faa_by_id(db: Session, id: Optional[List[str]]):
         raise HTTPException(status_code=422, detail="No IDs.")
 
 
-def find_protein_fna_by_id(db: Session, pid):
+def find_protein_fna_by_id(db: Session, id: Optional[List[str]]):
     """
     This function returns the Nucleotide sequences of the proteins based on the given Protein IDs
     """
