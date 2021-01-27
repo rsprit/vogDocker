@@ -17,8 +17,11 @@ import os
 # logger
 log = logging.getLogger(__name__)  # this logger works in any module
 # configuring logging
-logging.basicConfig(level=logging.DEBUG, filename="../vogdb/vogapi.log", filemode='w')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(module)s- %(funcName)s: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S', filename="../vogdb/vogapi.log", filemode='w')
 
+# logging.basicConfig(level=logging.DEBUG, format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s- %(funcName)s: %(message)s',
+#                     datefmt='%Y-%m-%d %H:%M:%S', filename="../vogdb/vogapi.log", filemode='w')
 
 # Configuration
 config = Config()
@@ -30,7 +33,7 @@ config.h2_max_concurrent_streams = 100
 config.h2_max_header_list_size = 65536
 config.h2_max_inbound_frame_size = 16384
 config.access_log_format = '%(h)s %(l)s %(l)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
-#ToDo: Add path to log files??
+# ToDo: Add path to log files??
 config.accesslog = "-"  # path to log file
 config.errorlog = "-"  # path to error log file
 config.statsd_host = "localhost:8000"

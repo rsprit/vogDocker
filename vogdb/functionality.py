@@ -43,7 +43,7 @@ def find_species_by_id(db: Session, ids: Optional[List[int]]):
         return results
     else:
         log.info("No IDs were given.")
-        raise HTTPException(status_code=422, detail="No IDs.")
+        raise HTTPException(status_code=422, detail="No IDs provided.")
 
 
 def get_species(db: Session,
@@ -100,7 +100,7 @@ def find_vogs_by_uid(db: Session, ids: Optional[List[str]]):
         return results
     else:
         log.error("No IDs were given.")
-        raise HTTPException(status_code=422, detail="No IDs.")
+        raise HTTPException(status_code=422, detail="No IDs provided.")
 
 
 def find_vogs_hmm_by_uid(uid):
@@ -222,13 +222,13 @@ def get_vogs(db: Session,
     # create a warning in the log file if "union" is specified but no species/taxIDs given to use the parameter
     if union is 'u':
         if species is None and tax_id is None:
-            log.warning("The 'Union' Parameter was provided, but no species or taxonomy IDs were provided.")
+            log.error("The 'Union' Parameter was provided, but no species or taxonomy IDs were provided.")
             raise Exception("The 'Union' Parameter was provided, but no species or taxonomy IDs were provided.")
         elif species is not None and len(species) < 2:
-            log.warning("The 'Union' Parameter was provided, but the number of species is smaller than 2.")
+            log.error("The 'Union' Parameter was provided, but the number of species is smaller than 2.")
             raise Exception("The 'Union' Parameter was provided, but the number of species is smaller than 2.")
         elif tax_id is not None and len(tax_id) < 2:
-            log.warning("The 'Union' Parameter was provided, but the number of taxonomy IDs is smaller than 2.")
+            log.error("The 'Union' Parameter was provided, but the number of taxonomy IDs is smaller than 2.")
             raise Exception("The 'Union' Parameter was provided, but the number of taxonomy IDs is smaller than 2.")
 
 
