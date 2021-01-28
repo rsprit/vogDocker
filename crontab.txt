@@ -1,0 +1,18 @@
+# Tasks to be run by cron.
+#
+# Cronjob to update NCBI taxonomy_database.
+# update_taxa_db.py is run on every Sunday at 00:00.
+# Logging information specified in python script is appended to text file taxa.log.
+# Error messages that arise upon execution are appended to taxa.log.
+#
+0 0 * * 7 python /home/user/update_taxa_db.py >> /home/user/taxa.log 2>&1
+#
+# Cronjob to update mysql vogdb.
+# update_db.py is run on the first Sunday of every month at 02:00.
+# Logging information specified in python script is appended to text file update.log.
+# Error messages that arise upon execution are appended to update.log.
+# 
+0 2 * * 7 [ $(date +\%d) -le 07 ] && python3 /home/user/update_db.py >> /home/user/update.log 2>&1
+
+
+
