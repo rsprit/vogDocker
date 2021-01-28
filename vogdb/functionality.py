@@ -33,19 +33,6 @@ if those two criteria are not fulfilled, pydantic will throw an ValidationError
 """
 
 
-def find_species_by_id(db: Session, ids: Optional[List[int]]):
-    """
-    This function returns the Species information based on the given species IDs
-    """
-    if ids:
-        log.info("Searching Species by IDs in the database...")
-        results = db.query(models.Species_profile).filter(models.Species_profile.taxon_id.in_(ids)).all()
-        return results
-    else:
-        log.info("No IDs were given.")
-        raise HTTPException(status_code=422, detail="No IDs provided.")
-
-
 def get_species(db: Session,
                 response_body,
                 taxon_id: Optional[Set[int]],
@@ -81,87 +68,27 @@ def get_species(db: Session,
 
                 if key == "version":
                     filters.append(getattr(models.Species_profile, key) == value)
-    except Exception:
-        raise HTTPException(status_code=403, detail="Invalid key/value pair")
+    except Exception as e:
+        raise Exception(e)
+        # raise HTTPException(status_code=403, detail="Invalid key/value pair")
 
     result = result.filter(*filters).order_by(sort)
 
     return result.all()
 
 
-def find_vogs_by_uid(db: Session, ids: Optional[List[str]]):
+def find_species_by_id(db: Session, ids: Optional[List[int]]):
     """
-    This function returns the VOG information based on the given VOG IDs
+    This function returns the Species information based on the given species IDs
     """
-
     if ids:
-        log.info("Searching VOGs by IDs in the database...")
-        results = db.query(models.VOG_profile).filter(models.VOG_profile.id.in_(ids)).all()
+        log.info("Searching Species by IDs in the database...")
+        results = db.query(models.Species_profile).filter(models.Species_profile.taxon_id.in_(ids)).all()
         return results
     else:
         log.error("No IDs were given.")
-        raise HTTPException(status_code=422, detail="No IDs provided.")
-
-
-def find_vogs_hmm_by_uid(uid):
-    log.info("Searching for Hidden Markov Models (HMM) in the data files...")
-
-    file_name = "./data/vog.hmm.tar.gz"
-
-    try:
-        tar = tarfile.open(file_name, "r:gz")
-    except FileNotFoundError:
-        raise HTTPException(status_code=500, detail="File not found: {0}".format(file_name))
-
-    vog_hmm_list = []
-    if uid:
-        for vog_id in uid:
-            vog_hmm_list.append(vog_id.upper() + ".hmm")
-    else:
-        log.info("No IDs were given.")
-        raise HTTPException(status_code=422, detail="No IDs.")
-
-    hmm_response = []
-    for vog_hmm in vog_hmm_list:
-        member = tar.getmember(vog_hmm)
-        f = tar.extractfile(member)
-        if f is not None:
-            file = f.read()
-            hmm_response.append(file)
-        else:
-            raise HTTPException(status_code=500, detail="File not found.")
-            # raise FileNotFoundError("File was not found.")
-
-    return hmm_response
-
-
-def find_vogs_msa_by_uid(uid):
-    log.info("Searching for Multiple Sequence Alignments (MSA) in the data files...")
-
-    file_name = "./data/vog.raw_algs.tar.gz"
-    try:
-        tar = tarfile.open(file_name, "r:gz")
-    except FileNotFoundError:
-        raise HTTPException(status_code=500, detail="File not found: {0}".format(file_name))
-
-    vog_msa_list = []
-    if uid:
-        for vog_id in uid:
-            vog_msa_list.append(vog_id.upper() + ".msa")
-    else:
-        log.info("No IDs were given.")
-        raise HTTPException(status_code=422, detail="No IDs.")
-
-    msa_response = []
-    for vog_msa in vog_msa_list:
-        member = tar.getmember(vog_msa)
-        f = tar.extractfile(member)
-        if f is not None:
-            file = f.read()
-            msa_response.append(file)
-        else:
-            raise HTTPException(status_code=500, detail="File not found.")
-    return msa_response
+        raise ValueError("No IDs were given.")
+        # raise HTTPException(status_code=422, detail="No IDs provided.")
 
 
 def get_vogs(db: Session,
@@ -195,7 +122,7 @@ def get_vogs(db: Session,
     log.info("Searching VOGs in the database...")
 
     if union is not 'i' and union is not 'u':
-        raise Exception("The parameter for the Intersection or Union search has to be 'i' or 'u'.")
+        raise ValueError("The parameter for the Intersection or Union search has to be 'i' or 'u'.")
 
     result = db.query(response_body)
     arguments = locals()
@@ -207,9 +134,10 @@ def get_vogs(db: Session,
         max = pair[1]
         if (min is not None) and (max is not None):
             if max < min:
-                raise Exception("The provided min is greater than the provided max.")
+                # ToDo value error.
+                raise ValueError("The provided min is greater than the provided max.")
             elif min < 0 or max < 0:
-                raise Exception("Number for min or max cannot be negative!")
+                raise ValueError("Number for min or max cannot be negative!")
 
     for pair in [[smin, smax], [pmin, pmax], [mingLCA, maxgLCA], [mingGLCA, maxgGLCA]]:
         check_validity(pair)
@@ -217,9 +145,10 @@ def get_vogs(db: Session,
     for number in smin, smax, pmin, pmax, mingLCA, maxgLCA, mingGLCA, maxgGLCA:
         if number is not None:
             if number < 1:
-                raise Exception('Parameter not > 0: Provided number: %s' % number)
+                raise ValueError('Provided number: %s has to be > 0.' % number)
 
     # create a warning in the log file if "union" is specified but no species/taxIDs given to use the parameter
+    #ToDo: What type of error here?
     if union is 'u':
         if species is None and tax_id is None:
             log.error("The 'Union' Parameter was provided, but no species or taxonomy IDs were provided.")
@@ -315,8 +244,6 @@ def get_vogs(db: Session,
 
                 if key == "tax_id":
                     ncbi = NCBITaxa()
-                    # ncbi.update_taxonomy_database()
-
                     try:
                         id_list = []
                         if union == 'u':
@@ -349,15 +276,30 @@ def get_vogs(db: Session,
                                 filters.append(getattr(models.VOG_profile, "id").in_(vog_ids))
                     except ValueError:
                         raise ValueError("The provided taxonomy ID is invalid.")
-
+    # ToDo: How do I know if Value error comes from the taxonomy ID or from something else?
     except ValueError:
         raise ValueError("The provided taxonomy ID is invalid.")
-    except Exception:
-        raise Exception("Invalid key/value pair")
+    except Exception as e:
+        raise Exception(e)
+        # raise Exception("Invalid key/value pair")
 
     result = result.filter(*filters).order_by(sort)
 
     return result.all()
+
+
+def find_vogs_by_uid(db: Session, ids: Optional[List[str]]):
+    """
+    This function returns the VOG information based on the given VOG IDs
+    """
+
+    if ids:
+        log.info("Searching VOGs by IDs in the database...")
+        results = db.query(models.VOG_profile).filter(models.VOG_profile.id.in_(ids)).all()
+        return results
+    else:
+        log.error("No IDs were given.")
+        raise ValueError("No IDs were given.")
 
 
 def get_proteins(db: Session,
@@ -397,8 +339,9 @@ def get_proteins(db: Session,
 
                 if key == "vog_id":
                     filters.append(getattr(models.Protein_profile, key).in_(value))
-    except Exception:
-        raise HTTPException(status_code=403, detail="Invalid key/value pair")
+    except Exception as e:
+        raise Exception(e)
+        # raise HTTPException(status_code=403, detail="Invalid key/value pair")
 
     result = result.filter(*filters).order_by(sort)
 
@@ -419,7 +362,70 @@ def find_proteins_by_id(db: Session, pids: Optional[List[str]]):
         return results
     else:
         log.error("No IDs were given.")
-        raise HTTPException(status_code=422, detail="No IDs.")
+        raise ValueError("No IDs were given")
+        # raise HTTPException(status_code=422, detail="No IDs.")
+
+
+def find_vogs_hmm_by_uid(uid):
+    log.info("Searching for Hidden Markov Models (HMM) in the data files...")
+
+    file_name = "./data/vog.hmm.tar.gz"
+
+    try:
+        tar = tarfile.open(file_name, "r:gz")
+    except FileNotFoundError:
+        raise FileNotFoundError(file_name)
+
+    vog_hmm_list = []
+    if uid:
+        for vog_id in uid:
+            vog_hmm_list.append(vog_id.upper() + ".hmm")
+    else:
+        log.error("No IDs were given.")
+        raise ValueError("No IDs were given")
+
+    hmm_response = []
+    for vog_hmm in vog_hmm_list:
+        member = tar.getmember(vog_hmm)
+        f = tar.extractfile(member)
+        if f is not None:
+            file = f.read()
+            hmm_response.append(file)
+        else:
+            # raise HTTPException(status_code=500, detail="File not found.")
+            raise FileNotFoundError("File was not found.")
+
+    return hmm_response
+
+
+def find_vogs_msa_by_uid(uid):
+    log.info("Searching for Multiple Sequence Alignments (MSA) in the data files...")
+
+    file_name = "./data/vog.raw_algs.tar.gz"
+    try:
+        tar = tarfile.open(file_name, "r:gz")
+    except FileNotFoundError:
+        raise FileNotFoundError(file_name)
+        # raise HTTPException(status_code=500, detail="File not found: {0}".format(file_name))
+
+    vog_msa_list = []
+    if uid:
+        for vog_id in uid:
+            vog_msa_list.append(vog_id.upper() + ".msa")
+    else:
+        log.error("No IDs were given.")
+        raise ValueError("No IDs were given")
+
+    msa_response = []
+    for vog_msa in vog_msa_list:
+        member = tar.getmember(vog_msa)
+        f = tar.extractfile(member)
+        if f is not None:
+            file = f.read()
+            msa_response.append(file)
+        else:
+            raise FileNotFoundError("File was not found.")
+    return msa_response
 
 
 def find_protein_faa_by_id(db: Session, id: Optional[List[str]]):
@@ -432,7 +438,8 @@ def find_protein_faa_by_id(db: Session, id: Optional[List[str]]):
         return results
     else:
         log.error("No IDs were given.")
-        raise HTTPException(status_code=422, detail="No IDs.")
+        raise ValueError("No IDs were given.")
+        # raise HTTPException(status_code=422, detail="No IDs.")
 
 
 def find_protein_fna_by_id(db: Session, id: Optional[List[str]]):
@@ -445,5 +452,4 @@ def find_protein_fna_by_id(db: Session, id: Optional[List[str]]):
         return results
     else:
         log.error("No IDs were given.")
-        raise HTTPException(status_code=422, detail="No IDs.")
-
+        raise ValueError("No IDs were given.")

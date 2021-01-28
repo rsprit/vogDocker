@@ -58,11 +58,10 @@ def search_species(db: Session = Depends(get_db),
         # check if it was a pymysql error:
         if "pymysql" in exc.args[0]:
             raise HTTPException(status_code=500, detail="Database error. See log file for details.")
-        raise HTTPException(status_code=400, detail="Species search not successful. Error: {0}".format(exc))
+        raise HTTPException(status_code=400, detail="Species search not successful. {0}".format(exc))
 
     if not species:
-        log.error("No Species match the search criteria.")
-        raise HTTPException(status_code=404, detail="No Species match the search criteria.")
+        log.info("No Species match the search criteria.")
     else:
         log.info("Species have been retrieved.")
     return species
@@ -82,15 +81,12 @@ async def get_summary_species(taxon_id: Optional[List[int]] = Query(None), db: S
 
     try:
         species_summary = find_species_by_id(db, taxon_id)
-    except HTTPException as exc:
-        log.error("Retrieving summary information for Species was not successful. Species IDs: {0}".format(taxon_id))
-        log.error(exc)
-        raise HTTPException(status_code=exc.status_code, detail=exc.detail)
     except Exception as exc:
+        #ToDo get rid of this error...
         # check if it was a pymysql error:
         if "pymysql" in exc.args[0]:
             raise HTTPException(status_code=500, detail="Database error. See log file for details.")
-        raise HTTPException(status_code=400, detail="Vsummary not successful. Error: {0}".format(exc))
+        raise HTTPException(status_code=400, detail="Vsummary not successful. {0}".format(exc))
 
     if not len(species_summary) == len(taxon_id):
         log.warning("At least one of the species was not found, or there were duplicates.\n"
@@ -148,11 +144,10 @@ def search_vog(db: Session = Depends(get_db),
         # check if it was a pymysql error:
         if "pymysql" in exc.args[0]:
             raise HTTPException(status_code=400, detail="Database error. See log file for details.")
-        raise HTTPException(status_code=400, detail="VOG search not successful. Error: {0}".format(exc))
+        raise HTTPException(status_code=400, detail="VOG search not successful. {0}".format(exc))
 
     if not vogs:
-        log.error("No VOGs match the search criteria.")
-        raise HTTPException(status_code=404, detail="No VOGs match the search criteria.")
+        log.info("No VOGs match the search criteria.")
     else:
         log.info("VOGs have been retrieved.")
     return vogs
@@ -173,10 +168,10 @@ async def get_summary_vog(id: List[str] = Query(None), db: Session = Depends(get
     try:
         vog_summary = find_vogs_by_uid(db, id)
     # ToDo: catch DB error
-    except HTTPException as exc:
-        log.error("Retrieving summary information for VOG was not successful. Parameters: {0}".format(id))
-        log.error(exc)
-        raise HTTPException(status_code=exc.status_code, detail="Vsummary not successful. Error: {0}".format(exc))
+    # except HTTPException as exc:
+    #     log.error("Retrieving summary information for VOG was not successful. Parameters: {0}".format(id))
+    #     log.error(exc)
+    #     raise HTTPException(status_code=exc.status_code, detail="Vsummary not successful. Error: {0}".format(exc))
     except Exception as exc:
         # check if it was a pymysql error:
         if "pymysql" in exc.args[0]:
@@ -219,11 +214,11 @@ async def search_protein(db: Session = Depends(get_db),
         # check if it was a pymysql error:
         if "pymysql" in exc.args[0]:
             raise HTTPException(status_code=500, detail="Database error. See log file for details.")
-        raise HTTPException(status_code=400, detail="Protein search not successful. Error: {0}".format(exc))
+        raise HTTPException(status_code=400, detail="Protein search not successful. {0}".format(exc))
 
     if not proteins:
-        log.error("No Proteins match the search criteria.")
-        raise HTTPException(status_code=404, detail="No Proteins match the search criteria.")
+        log.info("No Proteins match the search criteria.")
+        # raise HTTPException(status_code=404, detail="No Proteins match the search criteria.")
     else:
         log.info("Proteins have been retrieved.")
     return proteins
@@ -244,15 +239,11 @@ async def get_summary_protein(id: List[str] = Query(None), db: Session = Depends
 
     try:
         protein_summary = find_proteins_by_id(db, id)
-    except HTTPException as exc:
-        log.error("Retrieving summary information for Proteins was not successful. Protein IDs: {0}".format(id))
-        log.error(exc)
-        raise HTTPException(status_code=exc.status_code, detail=exc.detail)
     except Exception as exc:
         # check if it was a pymysql error:
         if "pymysql" in exc.args[0]:
             raise HTTPException(status_code=500, detail="Database error. See log file for details.")
-        raise HTTPException(status_code=400, detail="Vsummary not successful. Error: {0}".format(exc))
+        raise HTTPException(status_code=400, detail="Vsummary not successful. {0}".format(exc))
 
     if not len(protein_summary) == len(id):
         log.warning("At least one of the proteins was not found, or there were duplicates.\n"
@@ -282,7 +273,7 @@ async def fetch_vog(id: List[str] = Query(None)):
     except Exception as exc:
         log.error("MSA fetching not successful. Parameters: {0}".format(id))
         log.error(exc)
-        raise HTTPException(status_code=500, detail="MSA search not successful. Error: {0}".format(exc))
+        raise HTTPException(status_code=500, detail="MSA search not successful. {0}".format(exc))
 
     if not vog_hmm:
         log.error("No HMM found.")
@@ -309,7 +300,7 @@ async def fetch_vog(id: List[str] = Query(None)):
     except Exception as exc:
         log.error("MSA fetching not successful. Parameters: {0}".format(id))
         log.error(exc)
-        raise HTTPException(status_code=404, detail="MSA search not successful. Error: {0}".format(exc))
+        raise HTTPException(status_code=500, detail="MSA search not successful. {0}".format(exc))
 
     if not vog_msa:
         log.error("No HMM found.")
@@ -337,7 +328,7 @@ async def fetch_protein_faa(db: Session = Depends(get_db), id: List[str] = Query
     except Exception as exc:
         log.error("AA fetching not successful. IDs: {0}".format(id))
         log.error(exc)
-        raise HTTPException(status_code=400, detail="Amino Acid retrieval not successful. Error: {0}".format(exc))
+        raise HTTPException(status_code=400, detail="Amino Acid retrieval not successful. {0}".format(exc))
 
     if not len(protein_faa) == len(id):
         log.warning("At least one of the proteins was not found, or there were duplicates.\n"
@@ -369,7 +360,7 @@ async def fetch_protein_fna(db: Session = Depends(get_db), id: List[str] = Query
     except Exception as exc:
         log.error("NT fetching not successful. IDs: {0}".format(id))
         log.error(exc)
-        raise HTTPException(status_code=400, detail="Nucleotide retrieval not successful. Error: {0}".format(exc))
+        raise HTTPException(status_code=400, detail="Nucleotide retrieval not successful. {0}".format(exc))
 
     if not len(protein_fna) == len(id):
         log.warning("At least one of the proteins was not found, or there were duplicates.\n"

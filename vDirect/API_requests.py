@@ -2,6 +2,7 @@ import sys
 from os import path
 import pandas as pd
 
+#absolutes no go!!
 sys.path.append('../vogdb')
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from vogdb import schemas, main
