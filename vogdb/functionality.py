@@ -376,7 +376,6 @@ def find_vogs_hmm_by_uid(uid):
             #ToDo: inhalt des files als.. mach dict zwischen vogid und fileinhalten.
             hmm_response.append(file)
         else:
-            # raise HTTPException(status_code=500, detail="File not found.")
             raise FileNotFoundError("File was not found.")
 
     return hmm_response
@@ -390,7 +389,6 @@ def find_vogs_msa_by_uid(uid):
         tar = tarfile.open(file_name, "r:gz")
     except FileNotFoundError:
         raise FileNotFoundError(file_name)
-        # raise HTTPException(status_code=500, detail="File not found: {0}".format(file_name))
 
     vog_msa_list = []
     if uid:
@@ -423,7 +421,6 @@ def find_protein_faa_by_id(db: Session, id: Optional[List[str]]):
     else:
         log.error("No IDs were given.")
         raise ValueError("No IDs were given.")
-        # raise HTTPException(status_code=422, detail="No IDs.")
 
 
 def find_protein_fna_by_id(db: Session, id: Optional[List[str]]):

@@ -148,23 +148,23 @@ def generate_db():
 # ToDo: VOG needs to be capitalized
     with engine.connect() as con:
         engine.execute('ALTER TABLE `vogdb`.`VOG_profile` ADD PRIMARY KEY (`VOG_ID`(8)); ')  # add primary key
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  VOG_ID char(30) NOT NULL; ')  # convert text to char
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  FunctionalCategory char(30) NOT NULL; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  Consensus_func_description char(100) NOT NULL; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  ProteinCount int(255) NOT NULL; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  SpeciesCount int(255) NOT NULL; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  GenomesInGroup int(255) NOT NULL; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  GenomesTotal int(255) NOT NULL; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  Ancestors TEXT; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  StringencyHigh bool NOT NULL; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  StringencyMedium bool NOT NULL; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  StringencyLow bool NOT NULL; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  VirusSpecific bool NOT NULL; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  NumPhages int(255) NOT NULL; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  NumNonPhages int(255) NOT NULL; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  PhageNonphage TEXT; ')
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  Proteins LONGTEXT; ')
-        engine.execute('CREATE UNIQUE INDEX vog_profile_index ON vog_profile (VOG_ID, FunctionalCategory);')  # create index
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  VOG_ID char(30) NOT NULL; ')  # convert text to char
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  FunctionalCategory char(30) NOT NULL; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  Consensus_func_description char(100) NOT NULL; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  ProteinCount int(255) NOT NULL; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  SpeciesCount int(255) NOT NULL; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  GenomesInGroup int(255) NOT NULL; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  GenomesTotal int(255) NOT NULL; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  Ancestors TEXT; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  StringencyHigh bool NOT NULL; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  StringencyMedium bool NOT NULL; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  StringencyLow bool NOT NULL; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  VirusSpecific bool NOT NULL; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  NumPhages int(255) NOT NULL; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  NumNonPhages int(255) NOT NULL; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  PhageNonphage TEXT; ')
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile`  MODIFY  Proteins LONGTEXT; ')
+        engine.execute('CREATE UNIQUE INDEX vog_profile_index ON VOG_profile (VOG_ID, FunctionalCategory);')  # create index
         # con.execute('CREATE INDEX VOG_profile_index2 ON VOG_profile (Consensus_func_description);')  # create index
         #con.execute('ALTER TABLE VOG_profile  ADD FOREIGN KEY (TaxonID) REFERENCES Species_profile(TaxonID); ')
     # ToDo: add foreign keys to link to proteins, and species lists.
@@ -194,17 +194,17 @@ def generate_db():
     #protein_list_df["ProteinID"] = protein_list_df["ProteinID"].str.split(".").str[1:3].str.join(".")
 
     # create a protein table in the database
-    protein_list_df.to_sql(name='protein_profile', con=engine, if_exists='replace', index=False, chunksize=1000)
+    protein_list_df.to_sql(name='Protein_profile', con=engine, if_exists='replace', index=False, chunksize=1000)
 
 #Todo: Protein_profile needs to be capitalized
     with engine.connect() as con:
-        con.execute('ALTER TABLE protein_profile  MODIFY  ProteinID char(30) NOT NULL; ')
-        con.execute('ALTER TABLE protein_profile  MODIFY  TaxonID int(30) NOT NULL; ')
-        con.execute('ALTER TABLE protein_profile  MODIFY  VOG_ID char(30) NOT NULL; ')
+        con.execute('ALTER TABLE Protein_profile  MODIFY  ProteinID char(30) NOT NULL; ')
+        con.execute('ALTER TABLE Protein_profile  MODIFY  TaxonID int(30) NOT NULL; ')
+        con.execute('ALTER TABLE Protein_profile  MODIFY  VOG_ID char(30) NOT NULL; ')
         con.execute('CREATE INDEX vog_profile_index_by_protein ON Protein_profile (ProteinID);')
         # add foreign key
-        con.execute('ALTER TABLE protein_profile  ADD FOREIGN KEY (TaxonID) REFERENCES Species_profile(TaxonID); ')
-        con.execute('ALTER TABLE protein_profile  ADD FOREIGN KEY (VOG_ID) REFERENCES VOG_profile(VOG_ID); ')
+        con.execute('ALTER TABLE Protein_profile  ADD FOREIGN KEY (TaxonID) REFERENCES Species_profile(TaxonID); ')
+        con.execute('ALTER TABLE Protein_profile  ADD FOREIGN KEY (VOG_ID) REFERENCES VOG_profile(VOG_ID); ')
 
     print('Protein_profile table successfully created!')
     engine.execute('SET foreign_key_checks = 1;')
