@@ -12,6 +12,12 @@ import logging
 
 # get logger:
 log = logging.getLogger(__name__)
+# configuring logging
+# ToDo: Take out file name to log to console, then have the docker container create a log file
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(module)s- %(funcName)s: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
+# logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(module)s- %(funcName)s: %(message)s',
+#                     datefmt='%Y-%m-%d %H:%M:%S', filename="../vogdb/vogapi.log", filemode='w')
 
 api = FastAPI()
 

@@ -10,7 +10,7 @@ Note: you might need to change the MYSQL login credentials
 username = "root"
 password = "password"
 server = "localhost"
-database = "VOGDB"
+database = "vogdb"
 SQLALCHEMY_DATABASE_URL = "mysql+pymysql://{0}:{1}@{2}/{3}".format(username, password, server, database)
 
 # Create an engine object.
