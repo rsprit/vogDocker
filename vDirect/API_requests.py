@@ -132,6 +132,10 @@ def vsearch(command='vsearch', return_object="vog", format="json", **params):
         raise Exception(e.response.text)
     response = r.json()
 
+    # check if no matches were found
+    if not len(response):
+        raise Exception("No matches for the search criteria.")
+
     # formatting
     if format == "df":
         response = pd.DataFrame.from_dict(response)

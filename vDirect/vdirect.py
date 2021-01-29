@@ -160,59 +160,56 @@ def main():
     protein_fetch_parser.add_argument('-id', type=str, nargs='+', dest='id', default=sys.stdin,
                                       help="Protein identifiers")
 
-    try:
-        args = parser.parse_args()
 
-        if args.command == 'vfetch':
+    args = parser.parse_args()
+
+    if args.command == 'vfetch':
+        if not sys.stdin.isatty():
+            id = args.id.read().split()
+            # check if df
+            if id[1] == '0':
+                id = id[2::2]
+            if id[0][0] == '[':
+                raise Exception("The search output cannot be 'json' when piping.")
+        else:
+            id = args.id
+
+        print(vfetch(return_object=args.return_object, return_type=args.return_type, id=id), file=sys.stdout)
+
+
+    elif args.command == 'vsummary':
+        if args.return_object == 'species':
+            if not sys.stdin.isatty():
+                input = args.id.read().split()
+                try:
+                    int(input[0])
+                except Exception:
+                    raise Exception("Please specify '-f stdout' in the species search when piping.")
+                id = []
+                for ele in input:
+                    id.append(int(ele))
+            else:
+                id = args.id
+            print(vsummary(return_object=args.return_object, format=args.format, taxon_id=id), file=sys.stdout)
+
+        elif args.return_object == 'protein' or args.return_object == 'vog':
             if not sys.stdin.isatty():
                 id = args.id.read().split()
-                # check if df
+                #check if df
                 if id[1] == '0':
                     id = id[2::2]
                 if id[0][0] == '[':
                     raise Exception("The search output cannot be 'json' when piping.")
             else:
                 id = args.id
-
-            print(vfetch(return_object=args.return_object, return_type=args.return_type, id=id), file=sys.stdout)
-
-
-        elif args.command == 'vsummary':
-            if args.return_object == 'species':
-                if not sys.stdin.isatty():
-                    input = args.id.read().split()
-                    try:
-                        int(input[0])
-                    except Exception:
-                        raise Exception("Please specify '-f stdout' in the species search when piping.")
-                    id = []
-                    for ele in input:
-                        id.append(int(ele))
-                else:
-                    id = args.id
-                print(vsummary(return_object=args.return_object, format=args.format, taxon_id=id), file=sys.stdout)
-
-            elif args.return_object == 'protein' or args.return_object == 'vog':
-                if not sys.stdin.isatty():
-                    id = args.id.read().split()
-                    #check if df
-                    if id[1] == '0':
-                        id = id[2::2]
-                    if id[0][0] == '[':
-                        raise Exception("The search output cannot be 'json' when piping.")
-                else:
-                    id = args.id
-                print(vsummary(return_object=args.return_object, format=args.format, id=id), file=sys.stdout)
-            else:
-                raise Exception("unknown return object")
+            print(vsummary(return_object=args.return_object, format=args.format, id=id), file=sys.stdout)
+        else:
+            raise Exception("unknown return object")
 
 
-        elif args.command == 'vsearch':
-            result = vsearch(**vars(args))
-            print(result, file=sys.stdout)
-
-    except Exception as exc:
-        raise Exception(exc)
+    elif args.command == 'vsearch':
+        result = vsearch(**vars(args))
+        print(result, file=sys.stdout)
 
 
 if __name__ == '__main__':

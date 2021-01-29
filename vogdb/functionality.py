@@ -117,9 +117,6 @@ def get_vogs(db: Session,
     """
     log.info("Searching VOGs in the database...")
 
-    # if union is not 'i' and union is not 'u':
-    #     raise ValueError("The parameter for the Intersection or Union search has to be 'i' or 'u'.")
-
     result = db.query(response_body)
     arguments = locals()
     filters = []
@@ -258,20 +255,20 @@ def get_vogs(db: Session,
                     else:
                         # INTERSECTION SEARCH:
                         for id in tax_id:
-                            id_list.extend(
+                            id_list1 = []
+                            id_list1.extend(
                                 ncbi.get_descendant_taxa(id, collapse_subspecies=False, intermediate_nodes=True))
-                            id_list.append(id)
+                            id_list1.append(id)
                             vog_ids = db.query().with_entities(models.Protein_profile.vog_id).join(
                                 models.Species_profile). \
-                                filter(models.Species_profile.taxon_id.in_(id_list)).group_by(
+                                filter(models.Species_profile.taxon_id.in_(id_list1)).group_by(
                                 models.Protein_profile.vog_id). \
-                                filter(models.Species_profile.taxon_id.in_(id_list)).group_by(
+                                filter(models.Species_profile.taxon_id.in_(id_list1)).group_by(
                                 models.Protein_profile.vog_id).all()
                             vog_ids = {id[0] for id in vog_ids}  # convert to set
                             filters.append(getattr(models.VOG_profile, "id").in_(vog_ids))
                 except ValueError as e:
-                    #ToDo: give wrong taxonomy id.
-                    raise ValueError("The provided taxonomy ID is invalid. {}")
+                    raise ValueError("The provided taxonomy ID is invalid: {0}".format(id))
 
     result = result.filter(*filters).order_by(sort)
 
@@ -307,31 +304,27 @@ def get_proteins(db: Session,
     arguments = locals()
     filters = []
 
-    try:
-        for key, value in arguments.items():  # type: str, any
-            if value is not None:
-                if key == "species":
-                    s_res = []
-                    for s in species:
-                        search = "%" + s + "%"
-                        res = db.query().with_entities(models.Protein_profile.id,
-                                                       models.Protein_profile.vog_id,
-                                                       models.Protein_profile.taxon_id,
-                                                       models.Species_profile.species_name).join(
-                            models.Species_profile). \
-                            filter(models.Species_profile.species_name.like(search)).all()
-                        s_res.extend(res)
-                    s_res = {id[0] for id in s_res}  # convert to set
-                    filters.append(getattr(models.Protein_profile, "id").in_(s_res))
+    for key, value in arguments.items():  # type: str, any
+        if value is not None:
+            if key == "species":
+                s_res = []
+                for s in species:
+                    search = "%" + s + "%"
+                    res = db.query().with_entities(models.Protein_profile.id,
+                                                   models.Protein_profile.vog_id,
+                                                   models.Protein_profile.taxon_id,
+                                                   models.Species_profile.species_name).join(
+                        models.Species_profile). \
+                        filter(models.Species_profile.species_name.like(search)).all()
+                    s_res.extend(res)
+                s_res = {id[0] for id in s_res}  # convert to set
+                filters.append(getattr(models.Protein_profile, "id").in_(s_res))
 
-                if key == "taxon_id":
-                    filters.append(getattr(models.Protein_profile, key).in_(value))
+            if key == "taxon_id":
+                filters.append(getattr(models.Protein_profile, key).in_(value))
 
-                if key == "vog_id":
-                    filters.append(getattr(models.Protein_profile, key).in_(value))
-    except Exception as e:
-        raise Exception(e)
-        # raise HTTPException(status_code=403, detail="Invalid key/value pair")
+            if key == "vog_id":
+                filters.append(getattr(models.Protein_profile, key).in_(value))
 
     result = result.filter(*filters).order_by(sort)
 
@@ -353,7 +346,7 @@ def find_proteins_by_id(db: Session, pids: Optional[List[str]]):
     else:
         log.error("No IDs were given.")
         raise ValueError("No IDs were given")
-        # raise HTTPException(status_code=422, detail="No IDs.")
+
 
 # ToDo: tar extract extrahiert aus dem Archiv. geht nicht! wenn parallel exekutiert
 def find_vogs_hmm_by_uid(uid):
