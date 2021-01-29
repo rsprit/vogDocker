@@ -247,4 +247,7 @@ def generate_db():
         con.execute('CREATE INDEX ID ON NT_seq (ID);')
 
     print('Nucleotide sequences table successfully created!')     
-    
+
+
+if __name__ == '__main__':
+        generate_db()
