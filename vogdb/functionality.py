@@ -114,15 +114,15 @@ def get_vogs(db: Session,
              species: Optional[Set[str]],
              tax_id: Optional[Set[int]],
              sort: Optional[str],
-             union: Optional[str] = 'i',
+             union: Optional[bool],
              ):
     """
     This function searches the VOG based on the given query parameters
     """
     log.info("Searching VOGs in the database...")
 
-    if union is not 'i' and union is not 'u':
-        raise ValueError("The parameter for the Intersection or Union search has to be 'i' or 'u'.")
+    # if union is not 'i' and union is not 'u':
+    #     raise ValueError("The parameter for the Intersection or Union search has to be 'i' or 'u'.")
 
     result = db.query(response_body)
     arguments = locals()
@@ -149,7 +149,7 @@ def get_vogs(db: Session,
 
     # create a warning in the log file if "union" is specified but no species/taxIDs given to use the parameter
     #ToDo: What type of error here?
-    if union is 'u':
+    if union is True:
         if species is None and tax_id is None:
             log.error("The 'Union' Parameter was provided, but no species or taxonomy IDs were provided.")
             raise Exception("The 'Union' Parameter was provided, but no species or taxonomy IDs were provided.")
@@ -195,7 +195,7 @@ def get_vogs(db: Session,
                         filters.append(getattr(models.VOG_profile, key).like(p))
 
                 if key == "species":
-                    if union == 'i':
+                    if union is False:
                         # this is the INTERSECTION SEARCH:
                         vog_ids = db.query().with_entities(models.Protein_profile.vog_id).join(models.Species_profile). \
                             filter(models.Species_profile.species_name.in_(species)).group_by(
@@ -246,7 +246,7 @@ def get_vogs(db: Session,
                     ncbi = NCBITaxa()
                     try:
                         id_list = []
-                        if union == 'u':
+                        if union:
                             # UNION SEARCH:
                             for id in tax_id:
                                 id_list.extend(

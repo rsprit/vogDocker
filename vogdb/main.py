@@ -124,7 +124,7 @@ def search_vog(db: Session = Depends(get_db),
                species: Optional[Set[str]] = Query(None),
                tax_id: Optional[Set[int]] = Query(None),
                sort: Optional[str] = 'VOG_ID',
-               union: Optional[str] = 'i'):
+               union: Optional[bool] = None):
     """
     This functions searches a database and returns a list of vog unique identifiers (UIDs) for records in that database
     which meet the search criteria.
