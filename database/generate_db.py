@@ -58,10 +58,10 @@ def generate_db():
     #engine.execute('ALTER TABLE protein_profile drop FOREIGN KEY protein_profile_ibfk_1;')
     #engine.execute('ALTER TABLE protein_profile drop FOREIGN KEY protein_profile_ibfk_2;')
     engine.execute('SET foreign_key_checks = 0;')
-    species_list_df.to_sql(name='species_profile', con=engine, if_exists='replace', index=False, chunksize=1000)
+    species_list_df.to_sql(name='Species_profile', con=engine, if_exists='replace', index=False, chunksize=1000)
 
     with engine.connect() as con:
-        engine.execute('ALTER TABLE `vogdb`.`species_profile` ADD PRIMARY KEY (TaxonID);')
+        engine.execute('ALTER TABLE `vogdb`.`Species_profile` ADD PRIMARY KEY (TaxonID);')
         engine.execute('ALTER TABLE `vogdb`.`Species_profile`  MODIFY  SpeciesName char(100) NOT NULL; ')
         engine.execute('ALTER TABLE `vogdb`.`Species_profile`  MODIFY  TaxonID int(30) NOT NULL; ')
         engine.execute('ALTER TABLE `vogdb`.`Species_profile`  MODIFY  Phage bool NOT NULL; ')
@@ -141,13 +141,13 @@ def generate_db():
 
 
     # create a table in the database
-    dfr.to_sql(name='vog_profile', con=engine, if_exists='replace', index=True,
+    dfr.to_sql(name='VOG_profile', con=engine, if_exists='replace', index=True,
                dtype={'VOG_ID': VARCHAR(dfr.index.get_level_values('VOG_ID').str.len().max()), 'Proteins': LONGTEXT},
                chunksize=1000)
 
-
+# ToDo: VOG needs to be capitalized
     with engine.connect() as con:
-        engine.execute('ALTER TABLE `vogdb`.`vog_profile` ADD PRIMARY KEY (`VOG_ID`(8)); ')  # add primary key
+        engine.execute('ALTER TABLE `vogdb`.`VOG_profile` ADD PRIMARY KEY (`VOG_ID`(8)); ')  # add primary key
         engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  VOG_ID char(30) NOT NULL; ')  # convert text to char
         engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  FunctionalCategory char(30) NOT NULL; ')
         engine.execute('ALTER TABLE `vogdb`.`vog_profile`  MODIFY  Consensus_func_description char(100) NOT NULL; ')
@@ -196,11 +196,11 @@ def generate_db():
     # create a protein table in the database
     protein_list_df.to_sql(name='protein_profile', con=engine, if_exists='replace', index=False, chunksize=1000)
 
+#Todo: Protein_profile needs to be capitalized
     with engine.connect() as con:
         con.execute('ALTER TABLE protein_profile  MODIFY  ProteinID char(30) NOT NULL; ')
         con.execute('ALTER TABLE protein_profile  MODIFY  TaxonID int(30) NOT NULL; ')
         con.execute('ALTER TABLE protein_profile  MODIFY  VOG_ID char(30) NOT NULL; ')
-        #con.execute('ALTER TABLE Protein_profile  MODIFY  AASeq LONGTEXT; ')
         con.execute('CREATE INDEX vog_profile_index_by_protein ON Protein_profile (ProteinID);')
         # add foreign key
         con.execute('ALTER TABLE protein_profile  ADD FOREIGN KEY (TaxonID) REFERENCES Species_profile(TaxonID); ')

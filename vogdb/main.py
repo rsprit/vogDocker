@@ -56,6 +56,7 @@ def search_species(db: Session = Depends(get_db),
         log.error("Retrieving Species was not successful. Parameters: {0}".format(locals()))
         log.error(exc)
         # check if it was a pymysql error:
+        # ToDo: BIG NO GO...write to the log.
         if "pymysql" in exc.args[0]:
             raise HTTPException(status_code=500, detail="Database error. See log file for details.")
         raise HTTPException(status_code=400, detail="Species search not successful. {0}".format(exc))

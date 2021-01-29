@@ -49,28 +49,26 @@ def get_species(db: Session,
     result = db.query(response_body)
     arguments = locals()
     filters = []
-    try:
-        for key, value in arguments.items():  # type: str, any
-            if value is not None:
-                if key == "taxon_id":
-                    filters.append(getattr(models.Species_profile, key).in_(value))
 
-                if key == "species_name":
-                    value = "%" + value + "%"
-                    filters.append(getattr(models.Species_profile, key).like(value))
+    for key, value in arguments.items():  # type: str, any
+        if value is not None:
+            if key == "taxon_id":
+                filters.append(getattr(models.Species_profile, key).in_(value))
 
-                if key == "phage":
-                    filters.append(getattr(models.Species_profile, key).is_(value))
+            if key == "species_name":
+                value = "%" + value + "%"
+                filters.append(getattr(models.Species_profile, key).like(value))
 
-                if key == "source":
-                    value = "%" + value + "%"
-                    filters.append(getattr(models.Species_profile, key).like(value))
+            if key == "phage":
+                filters.append(getattr(models.Species_profile, key).is_(value))
 
-                if key == "version":
-                    filters.append(getattr(models.Species_profile, key) == value)
-    except Exception as e:
-        raise Exception(e)
-        # raise HTTPException(status_code=403, detail="Invalid key/value pair")
+            if key == "source":
+                value = "%" + value + "%"
+                filters.append(getattr(models.Species_profile, key).like(value))
+
+            if key == "version":
+                filters.append(getattr(models.Species_profile, key) == value)
+
 
     result = result.filter(*filters).order_by(sort)
 
@@ -161,97 +159,110 @@ def get_vogs(db: Session,
             raise Exception("The 'Union' Parameter was provided, but the number of taxonomy IDs is smaller than 2.")
 
 
-    try:
-        for key, value in arguments.items():  # type: str, any
-            if value is not None:
-                if key == "id":
-                    filters.append(getattr(models.VOG_profile, key).in_(value))
+    for key, value in arguments.items():  # type: str, any
+        if value is not None:
+            if key == "id":
+                filters.append(getattr(models.VOG_profile, key).in_(value))
 
-                if key == "consensus_function":
-                    for fct_d in value:
-                        d = "%" + fct_d + "%"
-                        filters.append(getattr(models.VOG_profile, key).like(d))
+            if key == "consensus_function":
+                for fct_d in value:
+                    d = "%" + fct_d + "%"
+                    filters.append(getattr(models.VOG_profile, key).like(d))
 
-                if key == "function":
-                    for fct_d in value:
-                        d = "%" + fct_d + "%"
-                        filters.append(getattr(models.VOG_profile, key).like(d))
+            if key == "function":
+                for fct_d in value:
+                    d = "%" + fct_d + "%"
+                    filters.append(getattr(models.VOG_profile, key).like(d))
 
-                if key == "smax":
-                    filters.append(getattr(models.VOG_profile, "species_count") < value + 1)
+            if key == "smax":
+                filters.append(getattr(models.VOG_profile, "species_count") < value + 1)
 
-                if key == "smin":
-                    filters.append(getattr(models.VOG_profile, "species_count") > value - 1)
+            if key == "smin":
+                filters.append(getattr(models.VOG_profile, "species_count") > value - 1)
 
-                if key == "pmax":
-                    filters.append(getattr(models.VOG_profile, "protein_count") < value + 1)
+            if key == "pmax":
+                filters.append(getattr(models.VOG_profile, "protein_count") < value + 1)
 
-                if key == "pmin":
-                    filters.append(getattr(models.VOG_profile, "protein_count") > value - 1)
+            if key == "pmin":
+                filters.append(getattr(models.VOG_profile, "protein_count") > value - 1)
 
-                if key == "proteins":
-                    for protein in value:
-                        p = "%" + protein + "%"
-                        filters.append(getattr(models.VOG_profile, key).like(p))
+            if key == "proteins":
+                for protein in value:
+                    p = "%" + protein + "%"
+                    filters.append(getattr(models.VOG_profile, key).like(p))
 
-                if key == "species":
-                    if union is False:
-                        # this is the INTERSECTION SEARCH:
-                        vog_ids = db.query().with_entities(models.Protein_profile.vog_id).join(models.Species_profile). \
-                            filter(models.Species_profile.species_name.in_(species)).group_by(
+            if key == "species":
+                if union is False:
+                    # this is the INTERSECTION SEARCH:
+                    vog_ids = db.query().with_entities(models.Protein_profile.vog_id).join(models.Species_profile). \
+                        filter(models.Species_profile.species_name.in_(species)).group_by(
+                        models.Protein_profile.vog_id). \
+                        having(func.count(models.Species_profile.species_name) == len(species)).all()
+                else:
+                    # UNION SEARCH below:
+                    vog_ids = db.query().with_entities(models.Protein_profile.vog_id).join(models.Species_profile). \
+                        filter(models.Species_profile.species_name.in_(species)).group_by(
+                        models.Protein_profile.vog_id).all()
+                vog_ids = {id[0] for id in vog_ids}  # convert to set
+                filters.append(getattr(models.VOG_profile, "id").in_(vog_ids))
+
+            if key == "maxgLCA":
+                filters.append(getattr(models.VOG_profile, "genomes_total_in_LCA") < value + 1)
+
+            if key == "mingLCA":
+                filters.append(getattr(models.VOG_profile, "genomes_total_in_LCA") > value - 1)
+
+            if key == "maxgGLCA":
+                filters.append(getattr(models.VOG_profile, "genomes_in_group") < value + 1)
+
+            if key == "mingGLCA":
+                filters.append(getattr(models.VOG_profile, "genomes_in_group") > value - 1)
+
+            if key == "ancestors":
+                for anc in value:
+                    a = "%" + anc + "%"
+                    filters.append(getattr(models.VOG_profile, key).like(a))
+
+            if key == "h_stringency":
+                filters.append(getattr(models.VOG_profile, key).is_(value))
+
+            if key == "m_stringency":
+                filters.append(getattr(models.VOG_profile, key).is_(value))
+
+            if key == "l_stringency":
+                filters.append(getattr(models.VOG_profile, key).is_(value))
+
+            if key == "virus_specific":
+                filters.append(getattr(models.VOG_profile, key).is_(value))
+
+            if key == "phages_nonphages":
+                val = "%" + value + "%"
+                filters.append(getattr(models.VOG_profile, key).like(val))
+
+            if key == "tax_id":
+                ncbi = NCBITaxa()
+                try:
+                    id_list = []
+                    if union:
+                        # UNION SEARCH:
+                        for id in tax_id:
+                            id_list.extend(
+                                ncbi.get_descendant_taxa(id, collapse_subspecies=False, intermediate_nodes=True))
+                            id_list.append(id)
+                        vog_ids = db.query().with_entities(models.Protein_profile.vog_id).join(
+                            models.Species_profile). \
+                            filter(models.Species_profile.taxon_id.in_(id_list)).group_by(
                             models.Protein_profile.vog_id). \
-                            having(func.count(models.Species_profile.species_name) == len(species)).all()
-                    else:
-                        # UNION SEARCH below:
-                        vog_ids = db.query().with_entities(models.Protein_profile.vog_id).join(models.Species_profile). \
-                            filter(models.Species_profile.species_name.in_(species)).group_by(
+                            filter(models.Species_profile.taxon_id.in_(id_list)).group_by(
                             models.Protein_profile.vog_id).all()
-                    vog_ids = {id[0] for id in vog_ids}  # convert to set
-                    filters.append(getattr(models.VOG_profile, "id").in_(vog_ids))
-
-                if key == "maxgLCA":
-                    filters.append(getattr(models.VOG_profile, "genomes_total_in_LCA") < value + 1)
-
-                if key == "mingLCA":
-                    filters.append(getattr(models.VOG_profile, "genomes_total_in_LCA") > value - 1)
-
-                if key == "maxgGLCA":
-                    filters.append(getattr(models.VOG_profile, "genomes_in_group") < value + 1)
-
-                if key == "mingGLCA":
-                    filters.append(getattr(models.VOG_profile, "genomes_in_group") > value - 1)
-
-                if key == "ancestors":
-                    for anc in value:
-                        a = "%" + anc + "%"
-                        filters.append(getattr(models.VOG_profile, key).like(a))
-
-                if key == "h_stringency":
-                    filters.append(getattr(models.VOG_profile, key).is_(value))
-
-                if key == "m_stringency":
-                    filters.append(getattr(models.VOG_profile, key).is_(value))
-
-                if key == "l_stringency":
-                    filters.append(getattr(models.VOG_profile, key).is_(value))
-
-                if key == "virus_specific":
-                    filters.append(getattr(models.VOG_profile, key).is_(value))
-
-                if key == "phages_nonphages":
-                    val = "%" + value + "%"
-                    filters.append(getattr(models.VOG_profile, key).like(val))
-
-                if key == "tax_id":
-                    ncbi = NCBITaxa()
-                    try:
-                        id_list = []
-                        if union:
-                            # UNION SEARCH:
-                            for id in tax_id:
-                                id_list.extend(
-                                    ncbi.get_descendant_taxa(id, collapse_subspecies=False, intermediate_nodes=True))
-                                id_list.append(id)
+                        vog_ids = {id[0] for id in vog_ids}  # convert to set
+                        filters.append(getattr(models.VOG_profile, "id").in_(vog_ids))
+                    else:
+                        # INTERSECTION SEARCH:
+                        for id in tax_id:
+                            id_list.extend(
+                                ncbi.get_descendant_taxa(id, collapse_subspecies=False, intermediate_nodes=True))
+                            id_list.append(id)
                             vog_ids = db.query().with_entities(models.Protein_profile.vog_id).join(
                                 models.Species_profile). \
                                 filter(models.Species_profile.taxon_id.in_(id_list)).group_by(
@@ -260,28 +271,9 @@ def get_vogs(db: Session,
                                 models.Protein_profile.vog_id).all()
                             vog_ids = {id[0] for id in vog_ids}  # convert to set
                             filters.append(getattr(models.VOG_profile, "id").in_(vog_ids))
-                        else:
-                            # INTERSECTION SEARCH:
-                            for id in tax_id:
-                                id_list.extend(
-                                    ncbi.get_descendant_taxa(id, collapse_subspecies=False, intermediate_nodes=True))
-                                id_list.append(id)
-                                vog_ids = db.query().with_entities(models.Protein_profile.vog_id).join(
-                                    models.Species_profile). \
-                                    filter(models.Species_profile.taxon_id.in_(id_list)).group_by(
-                                    models.Protein_profile.vog_id). \
-                                    filter(models.Species_profile.taxon_id.in_(id_list)).group_by(
-                                    models.Protein_profile.vog_id).all()
-                                vog_ids = {id[0] for id in vog_ids}  # convert to set
-                                filters.append(getattr(models.VOG_profile, "id").in_(vog_ids))
-                    except ValueError:
-                        raise ValueError("The provided taxonomy ID is invalid.")
-    # ToDo: How do I know if Value error comes from the taxonomy ID or from something else?
-    except ValueError:
-        raise ValueError("The provided taxonomy ID is invalid.")
-    except Exception as e:
-        raise Exception(e)
-        # raise Exception("Invalid key/value pair")
+                except ValueError as e:
+                    #ToDo: give wrong taxonomy id.
+                    raise ValueError("The provided taxonomy ID is invalid. {}")
 
     result = result.filter(*filters).order_by(sort)
 
@@ -365,7 +357,7 @@ def find_proteins_by_id(db: Session, pids: Optional[List[str]]):
         raise ValueError("No IDs were given")
         # raise HTTPException(status_code=422, detail="No IDs.")
 
-
+# ToDo: tar extract extrahiert aus dem Archiv. geht nicht! wenn parallel exekutiert
 def find_vogs_hmm_by_uid(uid):
     log.info("Searching for Hidden Markov Models (HMM) in the data files...")
 
@@ -390,6 +382,7 @@ def find_vogs_hmm_by_uid(uid):
         f = tar.extractfile(member)
         if f is not None:
             file = f.read()
+            #ToDo: inhalt des files als.. mach dict zwischen vogid und fileinhalten.
             hmm_response.append(file)
         else:
             # raise HTTPException(status_code=500, detail="File not found.")
