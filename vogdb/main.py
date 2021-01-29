@@ -1,3 +1,5 @@
+import sys
+
 import pymysql
 from fastapi import HTTPException
 
@@ -13,6 +15,29 @@ import logging
 log = logging.getLogger(__name__)
 
 api = FastAPI()
+
+
+def handle_error():
+    exc_info = sys.exc_info()
+    (_, exc, tb) = exc_info
+
+    # if it's a HTTPException just reraise it, but keep the traceback intact
+    if isinstance(exc, HTTPException):
+        raise exc.with_traceback(tb)
+
+    # classify exception into status codes
+    if isinstance(exc, (ValueError, KeyError)):
+        (status, text) = (400, "Bad request")
+    elif isinstance(exc, (AttributeError,)):
+        (status, text) = (422, "Unprocessable entity")
+    else:
+        (status, text) = (500, "Internal server error")
+
+    # log the original exception
+    log.exception(f"{status} - {text}, caused by", exc_info=exc_info)
+
+    # raise the corresponding FastAPI exception, with the original traceback
+    raise HTTPException(status, str(exc)).with_traceback(tb)
 
 
 # uncomment when we have a domain
@@ -52,20 +77,15 @@ def search_species(db: Session = Depends(get_db),
 
     try:
         species = get_species(db, models.Species_profile.taxon_id, ids, name, phage, source, version, sort)
-    except Exception as exc:
-        log.error("Retrieving Species was not successful. Parameters: {0}".format(locals()))
-        log.error(exc)
-        # check if it was a pymysql error:
-        # ToDo: BIG NO GO...write to the log.
-        if "pymysql" in exc.args[0]:
-            raise HTTPException(status_code=500, detail="Database error. See log file for details.")
-        raise HTTPException(status_code=400, detail="Species search not successful. {0}".format(exc))
 
-    if not species:
-        log.info("No Species match the search criteria.")
-    else:
-        log.info("Species have been retrieved.")
-    return species
+        if not species:
+            log.info("No Species match the search criteria.")
+            # raise HTTPException(status_code=404, detail="No Species match the search criteria.")
+        else:
+            log.info("Species have been retrieved.")
+        return species
+    except Exception:
+        handle_error()
 
 
 @api.get("/vsummary/species/",
@@ -82,23 +102,19 @@ async def get_summary_species(taxon_id: Optional[List[int]] = Query(None), db: S
 
     try:
         species_summary = find_species_by_id(db, taxon_id)
-    except Exception as exc:
-        #ToDo get rid of this error...
-        # check if it was a pymysql error:
-        if "pymysql" in exc.args[0]:
-            raise HTTPException(status_code=500, detail="Database error. See log file for details.")
-        raise HTTPException(status_code=400, detail="Vsummary not successful. {0}".format(exc))
 
-    if not len(species_summary) == len(taxon_id):
-        log.warning("At least one of the species was not found, or there were duplicates.\n"
-                    "IDs given: {0}".format(taxon_id))
+        if not len(species_summary) == len(taxon_id):
+            log.warning("At least one of the species was not found, or there were duplicates.\n"
+                        "IDs given: {0}".format(taxon_id))
 
-    if not species_summary:
-        log.error("No matching Species found")
-        raise HTTPException(status_code=404, detail="No matching Species found")
-    else:
-        log.info("Species summaries have been retrieved.")
-    return species_summary
+        if not species_summary:
+            log.error("No matching Species found")
+            raise HTTPException(status_code=404, detail="No matching Species found")
+        else:
+            log.info("Species summaries have been retrieved.")
+        return species_summary
+    except Exception:
+        handle_error()
 
 
 @api.get("/vsearch/vog/",
@@ -139,19 +155,15 @@ def search_vog(db: Session = Depends(get_db),
         vogs = get_vogs(db, models.VOG_profile.id, id, pmin, pmax, smax, smin, functional_category, consensus_function,
                         mingLCA, maxgLCA, mingGLCA, maxgGLCA, ancestors, h_stringency, m_stringency, l_stringency,
                         virus_specific, phages_nonphages, proteins, species, tax_id, sort, union)
-    except Exception as exc:
-        log.error("Retrieving VOGs was not successful. Parameters: {0}".format(locals()))
-        log.error(exc)
-        # check if it was a pymysql error:
-        if "pymysql" in exc.args[0]:
-            raise HTTPException(status_code=400, detail="Database error. See log file for details.")
-        raise HTTPException(status_code=400, detail="VOG search not successful. {0}".format(exc))
 
-    if not vogs:
-        log.info("No VOGs match the search criteria.")
-    else:
-        log.info("VOGs have been retrieved.")
-    return vogs
+        if not vogs:
+            log.info("No VOGs match the search criteria.")
+        else:
+            log.info("VOGs have been retrieved.")
+        return vogs
+    except Exception:
+        log.error("Retrieving VOGs was not successful. Parameters: {0}".format(locals()))
+        handle_error()
 
 
 @api.get("/vsummary/vog/",
@@ -168,24 +180,16 @@ async def get_summary_vog(id: List[str] = Query(None), db: Session = Depends(get
 
     try:
         vog_summary = find_vogs_by_uid(db, id)
-    # ToDo: catch DB error
-    # except HTTPException as exc:
-    #     log.error("Retrieving summary information for VOG was not successful. Parameters: {0}".format(id))
-    #     log.error(exc)
-    #     raise HTTPException(status_code=exc.status_code, detail="Vsummary not successful. Error: {0}".format(exc))
-    except Exception as exc:
-        # check if it was a pymysql error:
-        if "pymysql" in exc.args[0]:
-            raise HTTPException(status_code=500, detail="Database error. See log file for details.")
+        if not vog_summary:
+            log.error("No matching VOGs found")
+            raise HTTPException(status_code=404, detail="No matching VOGs found")
         else:
-            raise Exception(exc)
+            log.info("VOG summaries have been retrieved.")
+        return vog_summary
 
-    if not vog_summary:
-        log.error("No matching VOGs found")
-        raise HTTPException(status_code=404, detail="No matching VOGs found")
-    else:
-        log.info("VOG summaries have been retrieved.")
-    return vog_summary
+    except Exception:
+        log.error("Retrieving VOGs was not successful. Parameters: {0}".format(locals()))
+        handle_error()
 
 
 @api.get("/vsearch/protein/",

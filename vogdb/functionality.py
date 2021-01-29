@@ -69,7 +69,6 @@ def get_species(db: Session,
             if key == "version":
                 filters.append(getattr(models.Species_profile, key) == value)
 
-
     result = result.filter(*filters).order_by(sort)
 
     return result.all()
@@ -86,7 +85,6 @@ def find_species_by_id(db: Session, ids: Optional[List[int]]):
     else:
         log.error("No IDs were given.")
         raise ValueError("No IDs were given.")
-        # raise HTTPException(status_code=422, detail="No IDs provided.")
 
 
 def get_vogs(db: Session,
