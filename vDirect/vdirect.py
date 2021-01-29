@@ -71,9 +71,9 @@ def main():
                                    help="Species Names, enclose names in quotes")
     vog_search_parser.add_argument('-tid', '-taxonid', type=int, action='append', nargs='+', dest='tax_id',
                                    help="Taxonomy ID(s)")
-    vog_search_parser.add_argument('-u', '-union', type=str, action='store_true', nargs='+', dest='union',
+    vog_search_parser.add_argument('-u', '-union', action='store_true', dest='union',
                                    help="Do you want an (u)nion or an (i)ntersection search when searching VOGs by "
-                                        "Species names or Taxonomy IDs? Default = 'i'.")
+                                        "Species names or Taxonomy IDs? Default = False.")
     vog_search_parser.add_argument('-f', '-format', type=str, action='store', nargs='?', dest='format',
                                    choices=['json', 'df', 'stdout'], default='df',
                                    help="specify a format: 'json' or 'df' or 'stdout'")
