@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-
+import sys
 
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, create_database
@@ -18,8 +18,9 @@ Note: you may need to change the path of the data folder and your MYSQL credenti
 """
 
 def generate_db():
-    
-    data_path = "../data/"
+    data_path = sys.argv[1] if len(sys.argv) > 1 else "../data/"
+    if data_path[:-1] != "/":
+        data_path += "/"
 
     # MySQL database connection
     username = "root"
