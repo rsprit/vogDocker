@@ -9,15 +9,15 @@ from .schemas import *
 from . import models
 import logging
 
-
-# get logger:
-log = logging.getLogger(__name__)
 # configuring logging
 # ToDo: Take out file name to log to console, then have the docker container create a log file
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(module)s- %(funcName)s: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
 # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(module)s- %(funcName)s: %(message)s',
 #                     datefmt='%Y-%m-%d %H:%M:%S', filename="../vogdb/vogapi.log", filemode='w')
+
+# get logger:
+log = logging.getLogger(__name__)
 
 api = FastAPI()
 
@@ -28,12 +28,12 @@ def error_handling():
         yield
     except HTTPException:
         raise
-    except (ValueError, KeyError) as e:
+    except (ValueError, KeyError, AttributeError) as e:
         log.exception("Bad request")
         raise HTTPException(400, str(e)) from e
-    except AttributeError as e:
-        log.exception("Unprocessable entity")
-        raise HTTPException(422, str(e)) from e
+#    except AttributeError as e:
+#        log.exception("Unprocessable entity")
+#        raise HTTPException(422, str(e)) from e
     except Exception as e:
         log.exception("Internal server error")
         raise HTTPException(500, str(e)) from e
@@ -59,7 +59,7 @@ async def root():
 
 @api.get("/vsearch/species/",
          response_model=List[Species_ID])
-def search_species(db: Session = Depends(get_db),
+async def search_species(db: Session = Depends(get_db),
                    ids: Optional[Set[int]] = Query(None),
                    name: Optional[str] = None,
                    phage: Optional[bool] = None,
@@ -116,7 +116,7 @@ async def get_summary_species(taxon_id: Optional[List[int]] = Query(None), db: S
 
 @api.get("/vsearch/vog/",
          response_model=List[VOG_UID])
-def search_vog(db: Session = Depends(get_db),
+async def search_vog(db: Session = Depends(get_db),
                id: Optional[Set[str]] = Query(None),
                pmin: Optional[int] = None,
                pmax: Optional[int] = None,

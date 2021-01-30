@@ -1,0 +1,12 @@
+ete3==3.1.2
+lxml
+cryptography
+pandas
+sqlalchemy
+sqlalchemy-utils
+pymysql
+biopython
+uvicorn
+hypercorn
+fastapi
+

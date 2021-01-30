@@ -1,4 +1,3 @@
-# from database.generate_db import ncbi
 import os
 
 from fastapi import HTTPException
@@ -7,13 +6,11 @@ from sqlalchemy import func
 from . import models
 from typing import Optional, Set, List
 import tarfile
-from ete3 import NCBITaxa
+from .taxa import ncbi_taxa
 import logging
 
 # get logger:
 log = logging.getLogger(__name__)
-
-# ncbi = NCBITaxa()
 
 """
 Here we define all the search methods that are used for extracting the data from the database
@@ -235,7 +232,7 @@ def get_vogs(db: Session,
                 filters.append(getattr(models.VOG_profile, key).like(val))
 
             if key == "tax_id":
-                ncbi = NCBITaxa()
+                ncbi = ncbi_taxa()
                 try:
                     id_list = []
                     if union:
