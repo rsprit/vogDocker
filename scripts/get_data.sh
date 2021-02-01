@@ -24,10 +24,11 @@ wget --no-verbose \
 rm *.fa
 gunzip -k *.fa.gz
 
-# untar archives (not needed so far)
+# untar hmm and raw_algs archives (faa not needed so far)
 
-#for f in faa hmm raw_algs; do
-#	mkdir ${f}
-#	tar -x -z -C $f -f vog.$f.tar.gz
-#	rm vog.$f.tar.gz
-#done
+for f in hmm raw_algs; do
+	mkdir -p ${f}
+     rm -rf ${f}/*
+	tar -x -z -C $f -f vog.$f.tar.gz
+     gzip ${f}/*
+done

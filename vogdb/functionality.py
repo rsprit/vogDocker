@@ -1,11 +1,10 @@
 import os
+import gzip
 
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from . import models
 from typing import Optional, Set, List
-import tarfile
 from .taxa import ncbi_taxa
 import logging
 
@@ -345,66 +344,40 @@ def find_proteins_by_id(db: Session, pids: Optional[List[str]]):
         raise ValueError("No IDs were given")
 
 
-# ToDo: tar extract extrahiert aus dem Archiv. geht nicht! wenn parallel exekutiert
 def find_vogs_hmm_by_uid(uid):
     log.info("Searching for Hidden Markov Models (HMM) in the data files...")
 
-    file_name = os.path.join(os.environ.get("VOG_DATA", "data"), "vog.hmm.tar.gz")
-
-    try:
-        tar = tarfile.open(file_name, "r:gz")
-    except FileNotFoundError:
-        raise FileNotFoundError(file_name)
-
-    vog_hmm_list = []
-    if uid:
-        for vog_id in uid:
-            vog_hmm_list.append(vog_id.upper() + ".hmm")
-    else:
+    if not uid:
         log.error("No IDs were given.")
         raise ValueError("No IDs were given")
 
-    hmm_response = []
-    for vog_hmm in vog_hmm_list:
-        member = tar.getmember(vog_hmm)
-        f = tar.extractfile(member)
-        if f is not None:
-            file = f.read()
-            #ToDo: inhalt des files als.. mach dict zwischen vogid und fileinhalten.
-            hmm_response.append(file)
-        else:
-            raise FileNotFoundError("File was not found.")
+    return [_hmm_content(id) for id in set(uid)]
 
-    return hmm_response
+
+def _hmm_content(uid: str) -> str:
+    try:
+        return _load_gzipped_file_content(uid.upper(), "hmm", ".hmm.gz")
+    except FileNotFoundError:
+        log.exception(f"No HMM for {uid}")
+        raise ValueError(f"Invalid Id {uid}")
 
 
 def find_vogs_msa_by_uid(uid):
     log.info("Searching for Multiple Sequence Alignments (MSA) in the data files...")
 
-    file_name = os.path.join(os.environ.get("VOG_DATA", "data"), "vog.raw_algs.tar.gz")
-    try:
-        tar = tarfile.open(file_name, "r:gz")
-    except FileNotFoundError:
-        raise FileNotFoundError(file_name)
-
-    vog_msa_list = []
-    if uid:
-        for vog_id in uid:
-            vog_msa_list.append(vog_id.upper() + ".msa")
-    else:
+    if not uid:
         log.error("No IDs were given.")
         raise ValueError("No IDs were given")
 
-    msa_response = []
-    for vog_msa in vog_msa_list:
-        member = tar.getmember(vog_msa)
-        f = tar.extractfile(member)
-        if f is not None:
-            file = f.read()
-            msa_response.append(file)
-        else:
-            raise FileNotFoundError("File was not found.")
-    return msa_response
+    return [_msa_content(id) for id in set(uid)]
+
+
+def _msa_content(uid: str) -> str:
+    try:
+        return _load_gzipped_file_content(uid.upper(), "raw_algs", ".msa.gz")
+    except FileNotFoundError:
+        log.exception(f"No MSA for {uid}")
+        raise ValueError(f"Invalid Id {uid}")
 
 
 def find_protein_faa_by_id(db: Session, id: Optional[List[str]]):
@@ -431,3 +404,10 @@ def find_protein_fna_by_id(db: Session, id: Optional[List[str]]):
     else:
         log.error("No IDs were given.")
         raise ValueError("No IDs were given.")
+
+
+def _load_gzipped_file_content(id: str, prefix: str, suffix: str) -> str:
+    file_name = os.path.join(os.environ.get("VOG_DATA", "data"), prefix, id + suffix)
+    with gzip.open(file_name, "rt") as f:
+        return f.read()
+
