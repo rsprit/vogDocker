@@ -1,7 +1,7 @@
 import os
 import logging
 import gzip
-from typing import Optional, Set, List
+from typing import Dict, Optional, Set, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -41,22 +41,22 @@ def get_species(db: Session,
 
     table = models.Species_profile
 
-    filters = []
+    query = db.query(table.taxon_id)
 
     if taxon_id:
-        filters.append(table.taxon_id.in_(set(taxon_id)))
+        query = query.filter(table.taxon_id.in_(set(taxon_id)))
 
     if species_name:
         for name in set(species_name):
-            filters.append(table.species_name.like("%" + name + "%"))
+            query = query.filter(table.species_name.like("%" + name + "%"))
 
     if phage is not None:
-        filters.append(table.phage.is_(phage))
+        query = query.filter(table.phage == phage)
 
     if source:
-        filters.append(table.source.like("%" + source + "%"))
+        query = query.filter(table.source.like("%" + source + "%"))
 
-    return db.query(table.taxon_id).filter(*filters).all()
+    return query.order_by(table.taxon_id).all()
 
 
 def find_species_by_id(db: Session, ids: List[int]):
@@ -274,70 +274,62 @@ def find_vogs_by_uid(db: Session, ids: Optional[List[str]]):
 
 
 def get_proteins(db: Session,
-                 response_body,
-                 species: Optional[Set[str]],
-                 taxon_id: Optional[Set[int]],
-                 vog_id: Optional[Set[str]],
-                 sort: Optional[str]):
+                 species: List[str],
+                 taxon_id: List[int],
+                 vog_id: List[str]):
     """
     This function searches the for proteins based on the given query parameters
     """
-    log.info("Searching Proteins in the database...")
+    log.debug("Searching Proteins in the database...")
 
-    result = db.query(response_body)
-    arguments = locals()
-    filters = []
+    table = models.Protein_profile
 
-    for key, value in arguments.items():  # type: str, any
-        if value is not None:
-            if key == "species":
-                s_res = []
-                for s in species:
-                    search = "%" + s + "%"
-                    res = db.query().with_entities(models.Protein_profile.id,
-                                                   models.Protein_profile.vog_id,
-                                                   models.Protein_profile.taxon_id,
-                                                   models.Species_profile.species_name).join(
-                        models.Species_profile). \
-                        filter(models.Species_profile.species_name.like(search)).all()
-                    s_res.extend(res)
-                s_res = {id[0] for id in s_res}  # convert to set
-                filters.append(getattr(models.Protein_profile, "id").in_(s_res))
+    query = db.query(table.id)
 
-            if key == "taxon_id":
-                filters.append(getattr(models.Protein_profile, key).in_(value))
+    if taxon_id:
+        query = query.filter(table.taxon_id.in_(set(taxon_id)))
 
-            if key == "vog_id":
-                filters.append(getattr(models.Protein_profile, key).in_(value))
+    if vog_id:
+        query = query.filter(table.vog_id.in_(set(vog_id)))
 
-    result = result.filter(*filters).order_by(sort)
+    if species:
+        # TODO this is a join once the mapping is correct
+        subquery = db.query(models.Species_profile.taxon_id)
 
-    return result.all()
+        for s in set(species):
+            subquery = subquery.filter(models.Species_profile.species_name.like("%" + s + "%"))
+
+        query = query.filter(table.taxon_id.in_(subquery))
+
+    return query.order_by(table.id).all()
 
 
-def find_proteins_by_id(db: Session, pids: Optional[List[str]]):
+def find_proteins_by_id(db: Session, pids: List[str]):
     """
     This function returns the Protein information based on the given Protein IDs
     """
     if pids:
-        log.info("Searching Proteins by ProteinIDs in the database...")
-        results = db.query().with_entities(models.Protein_profile.id,
-                                           models.Protein_profile.vog_id,
-                                           models.Protein_profile.taxon_id,
-                                           models.Species_profile.species_name).join(models.Species_profile). \
-            filter(models.Protein_profile.id.in_(pids)).all()
-        return results
+        log.debug("Searching Proteins by ProteinIDs in the database...")
+
+        # TODO this is a join once the mapping is correct
+        return db.query().with_entities(models.Protein_profile.id,
+                                        models.Protein_profile.vog_id,
+                                        models.Protein_profile.taxon_id,
+                                        models.Species_profile.species_name) \
+                .join(models.Species_profile) \
+                .filter(models.Protein_profile.id.in_(pids)) \
+                .all()
     else:
-        log.error("No IDs were given.")
-        raise ValueError("No IDs were given")
+        log.debug("No IDs were given.")
+        return list()
 
 
-def find_vogs_hmm_by_uid(uid):
-    log.info("Searching for Hidden Markov Models (HMM) in the data files...")
+def find_vogs_hmm_by_uid(uid: List[str]) -> Dict[str, str]:
+    log.debug("Searching for Hidden Markov Models (HMM) in the data files...")
 
     if not uid:
-        log.error("No IDs were given.")
-        raise ValueError("No IDs were given")
+        log.debug("No IDs were given.")
+        return {}
 
     return {id:hmm_content(id) for id in set(uid)}
 
@@ -350,12 +342,12 @@ def hmm_content(uid: str) -> str:
         raise KeyError(f"Invalid Id {uid}")
 
 
-def find_vogs_msa_by_uid(uid):
-    log.info("Searching for Multiple Sequence Alignments (MSA) in the data files...")
+def find_vogs_msa_by_uid(uid: List[str]) -> Dict[str,str]:
+    log.debug("Searching for Multiple Sequence Alignments (MSA) in the data files...")
 
     if not uid:
-        log.error("No IDs were given.")
-        raise ValueError("No IDs were given")
+        log.debug("No IDs were given.")
+        return {}
 
     return {id:msa_content(id) for id in set(uid)}
 

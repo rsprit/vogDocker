@@ -295,10 +295,9 @@ async def plain_vog_msa(id: str = Path(..., title="VOG id", min_length=8, regex=
 
 
 @api.get("/vsearch/protein", response_model=List[ProteinID])
-async def search_protein(species_name: Optional[Set[str]] = Query(None),
-                         taxon_id: Optional[Set[int]] = Query(None),
-                         VOG_id: Optional[Set[str]] = Query(None),
-                         sort: Optional[str] = Query('ProteinID'),
+async def search_protein(species_name: List[str] = Query(None),
+                         taxon_id: List[int] = Query(None),
+                         VOG_id: List[str] = Query(None),
                          db: Session = Depends(get_db)):
     """
     This functions searches a database and returns a list of Protein IDs for records in the database
@@ -310,15 +309,15 @@ async def search_protein(species_name: Optional[Set[str]] = Query(None),
     :return: A List of Protein IDs
     """
     with error_handling():
-        log.info("GET request vsearch/protein")
-        log.debug("Received a vsearch/protein request with parameters: {0}".format(locals()))
+        log.debug("Received a vsearch/protein request")
 
-        proteins = get_proteins(db, models.Protein_profile.id, species_name, taxon_id, VOG_id, sort)
+        proteins = get_proteins(db, species_name, taxon_id, VOG_id)
 
         if not proteins:
-            log.info("No Proteins match the search criteria.")
+            log.debug("No Proteins match the search criteria.")
         else:
-            log.info("Proteins have been retrieved.")
+            log.debug("Proteins have been retrieved.")
+
         return proteins
 
 
@@ -332,20 +331,15 @@ async def get_summary_protein(id: List[str] = Query(None), db: Session = Depends
     :return: protein summary
     """
     with error_handling():
-        log.info("GET request vsummary/protein")
-        log.debug("Received a vsummary/protein request with parameters: {0}".format(locals()))
+        log.debug("Received a vsummary/protein request")
 
         protein_summary = find_proteins_by_id(db, id)
 
-        if not len(protein_summary) == len(id):
-            log.warning("At least one of the proteins was not found, or there were duplicates.\n"
-                        "IDs given: {0}".format(id))
-
         if not protein_summary:
-            log.error("No matching Proteins found")
-            raise HTTPException(status_code=404, detail="No matching Proteins found")
+            log.debug("No matching Proteins found")
         else:
-            log.info("Proteins summaries have been retrieved.")
+            log.debug("Proteins summaries have been retrieved.")
+            
         return protein_summary
 
 
