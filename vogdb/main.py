@@ -1,5 +1,6 @@
 import contextlib
 import logging
+from typing import Dict
 
 from .functionality import *
 from .database import SessionLocal
@@ -237,16 +238,17 @@ async def get_summary_protein(id: List[str] = Query(None), db: Session = Depends
         return protein_summary
 
 
-@api.get("/vfetch/vog/hmm")
+@api.get("/vfetch/vog/hmm", response_model=Dict[str,str])
 async def fetch_vog(id: List[str] = Query(None)):
     """
     This function returns the Hidden Markov Matrix (HMM) for a list of unique identifiers (UIDs)
+    \f
     :param id: VOGID
     :return: vog data (HMM profile)
     """
     with error_handling():
         log.info("GET request vfetch/vog/hmm")
-        log.debug("Received a vfetch/vog/hmm request with parameters: {0}".format(locals()))
+        log.debug("Received a vfetch/vog/hmm request with parameters: {0}".format(id))
 
         vog_hmm = find_vogs_hmm_by_uid(id)
 
@@ -258,17 +260,17 @@ async def fetch_vog(id: List[str] = Query(None)):
         return vog_hmm
 
 
-@api.get("/vfetch/vog/msa")
+@api.get("/vfetch/vog/msa", response_model=Dict[str,str])
 async def fetch_vog(id: List[str] = Query(None)):
     """
     This function returns the Multiple Sequence Alignment (MSA) for a list of unique identifiers (UIDs)
+    \f
     :param id: VOGID
-    :param db: database session dependency
     :return: vog data (MSA)
     """
     with error_handling():
         log.info("GET request vfetch/vog/msa")
-        log.debug("Received a vfetch/vog/msa request with parameters: {0}".format(locals()))
+        log.debug("Received a vfetch/vog/msa request with parameters: {0}".format(id))
 
         vog_msa = find_vogs_msa_by_uid(id)
 
@@ -342,24 +344,30 @@ async def fetch_protein_fna(db: Session = Depends(get_db), id: List[str] = Query
         return protein_fna
 
 
-@api.get("/vplain/vog/hmm/{id}", response_class=PlainTextResponse, summary="Get the HMM")
-async def plain_vog_hmm(id: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
+@api.get("/vog/{vog}/hmm", response_class=PlainTextResponse, summary="Get the HMM")
+async def plain_vog_hmm(vog: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
     """
     Get the Hidden Markov Matrix of the given VOG as plain text.
     \f
-    :param id: VOGID
+    :param vog: VOGID
     """
 
     with error_handling():
-        return PlainTextResponse(hmm_content(id))
+        try:
+            return PlainTextResponse(hmm_content(vog))
+        except KeyError:
+            raise HTTPException(404, "Not found")
 
-@api.get("/vplain/vog/msa/{id}", response_class=PlainTextResponse, summary="Get the MSA")
-async def plain_vog_msa(id: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
+@api.get("/vog/{vog}/msa", response_class=PlainTextResponse, summary="Get the MSA")
+async def plain_vog_msa(vog: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
     """
     Get the Multiple Sequence Alignment of the given VOG as plain text.
     \f
-    :param id: VOGID
+    :param vog: VOGID
     """
 
     with error_handling():
-        return PlainTextResponse(msa_content(id))
+        try:
+            return PlainTextResponse(msa_content(vog))
+        except KeyError:
+            raise HTTPException(404, "Not found")

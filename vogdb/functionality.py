@@ -351,7 +351,7 @@ def find_vogs_hmm_by_uid(uid):
         log.error("No IDs were given.")
         raise ValueError("No IDs were given")
 
-    return [hmm_content(id) for id in set(uid)]
+    return {id:hmm_content(id) for id in set(uid)}
 
 
 def hmm_content(uid: str) -> str:
@@ -359,7 +359,7 @@ def hmm_content(uid: str) -> str:
         return _load_gzipped_file_content(uid.upper(), "hmm", ".hmm.gz")
     except FileNotFoundError:
         log.exception(f"No HMM for {uid}")
-        raise ValueError(f"Invalid Id {uid}")
+        raise KeyError(f"Invalid Id {uid}")
 
 
 def find_vogs_msa_by_uid(uid):
@@ -369,7 +369,7 @@ def find_vogs_msa_by_uid(uid):
         log.error("No IDs were given.")
         raise ValueError("No IDs were given")
 
-    return [msa_content(id) for id in set(uid)]
+    return {id:msa_content(id) for id in set(uid)}
 
 
 def msa_content(uid: str) -> str:
@@ -377,7 +377,7 @@ def msa_content(uid: str) -> str:
         return _load_gzipped_file_content(uid.upper(), "raw_algs", ".msa.gz")
     except FileNotFoundError:
         log.exception(f"No MSA for {uid}")
-        raise ValueError(f"Invalid Id {uid}")
+        raise KeyError(f"Invalid Id {uid}")
 
 
 def find_protein_faa_by_id(db: Session, id: Optional[List[str]]):
