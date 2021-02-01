@@ -61,8 +61,6 @@ async def search_species(
                    name: Optional[str] = None,
                    phage: Optional[bool] = None,
                    source: Optional[str] = None,
-                   version: Optional[int] = None,
-                   sort: Optional[str] = 'SpeciesName',
                    db: Session = Depends(get_db)):
     """
     This functions searches a database and returns a list of species IDs for records in that database
@@ -72,21 +70,20 @@ async def search_species(
     """
 
     with error_handling():
-        log.info("GET request vsearch/species")
         log.debug("Received a vsearch/species request with parameters: {0}".format(locals()))
 
-        species = get_species(db, models.Species_profile.taxon_id, ids, name, phage, source, version, sort)
+        species = get_species(db, ids, name, phage, source)
 
         if not species:
-            log.info("No Species match the search criteria.")
-            # raise HTTPException(status_code=404, detail="No Species match the search criteria.")
+            log.debug("No Species match the search criteria.")
         else:
-            log.info("Species have been retrieved.")
+            log.debug("Species have been retrieved.")
+
         return species
 
 
 @api.get("/vsummary/species", response_model=List[Species_profile])
-async def get_summary_species(taxon_id: Optional[List[int]] = Query(None), db: Session = Depends(get_db)):
+async def get_summary_species(taxon_id: List[int] = Query(None), db: Session = Depends(get_db)):
     """
     This function returns Species summaries for a list of taxon ids
     \f
@@ -100,10 +97,7 @@ async def get_summary_species(taxon_id: Optional[List[int]] = Query(None), db: S
 
         species_summary = find_species_by_id(db, taxon_id)
 
-        if not species_summary:
-            log.error("No matching Species found")
-            raise HTTPException(status_code=404, detail="No matching Species found")
-        elif not len(species_summary) == len(taxon_id):
+        if len(species_summary) != len(taxon_id):
             log.warning("At least one of the species was not found, or there were duplicates.\n"
                         "IDs given: {0}".format(taxon_id))
         else:

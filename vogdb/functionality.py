@@ -30,57 +30,44 @@ if those two criteria are not fulfilled, pydantic will throw an ValidationError
 
 
 def get_species(db: Session,
-                response_body,
                 taxon_id: Optional[Set[int]],
                 species_name: Optional[str],
                 phage: Optional[bool],
-                source: Optional[str],
-                version: Optional[int],
-                sort: Optional[str]):
+                source: Optional[str]):
     """
     This function searches the Species based on the given query parameters
     """
-    log.info("Searching Species in the database...")
+    log.debug("Searching Species in the database...")
 
-    result = db.query(response_body)
-    arguments = locals()
+    table = models.Species_profile
+
     filters = []
 
-    for key, value in arguments.items():  # type: str, any
-        if value is not None:
-            if key == "taxon_id":
-                filters.append(getattr(models.Species_profile, key).in_(value))
+    if taxon_id:
+        filters.append(table.taxon_id.in_(taxon_id))
 
-            if key == "species_name":
-                value = "%" + value + "%"
-                filters.append(getattr(models.Species_profile, key).like(value))
+    if species_name:
+        filters.append(table.species_name.like("%" + species_name + "%"))
 
-            if key == "phage":
-                filters.append(getattr(models.Species_profile, key).is_(value))
+    if phage is not None:
+        filters.append(table.phage.is_(phage))
 
-            if key == "source":
-                value = "%" + value + "%"
-                filters.append(getattr(models.Species_profile, key).like(value))
+    if source:
+        filters.append(table.source.like("%" + source + "%"))
 
-            if key == "version":
-                filters.append(getattr(models.Species_profile, key) == value)
-
-    result = result.filter(*filters).order_by(sort)
-
-    return result.all()
+    return db.query(table.taxon_id).filter(*filters).all()
 
 
-def find_species_by_id(db: Session, ids: Optional[List[int]]):
+def find_species_by_id(db: Session, ids: List[int]):
     """
     This function returns the Species information based on the given species IDs
     """
     if ids:
-        log.info("Searching Species by IDs in the database...")
-        results = db.query(models.Species_profile).filter(models.Species_profile.taxon_id.in_(ids)).all()
-        return results
+        log.debug("Searching Species by IDs in the database...")
+        return db.query(models.Species_profile).filter(models.Species_profile.taxon_id.in_(ids)).all()
     else:
-        log.error("No IDs were given.")
-        raise ValueError("No IDs were given.")
+        log.debug("No IDs were given.")
+        return list()
 
 
 def get_vogs(db: Session,
