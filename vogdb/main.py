@@ -1,6 +1,6 @@
 import contextlib
 import logging
-from typing import Dict
+from typing import Dict, Set, Optional, List
 
 from .functionality import *
 from .database import SessionLocal
@@ -50,17 +50,17 @@ def get_db():
         db.close()
 
 
-@api.get("/")
+@api.get("/", summary="Welcome")
 async def root():
     return {"message": "Welcome to VOGDB-API"}
 
 
-@api.get("/vsearch/species", response_model=List[Species_ID])
+@api.get("/vsearch/species", response_model=List[Species_ID], summary="Species search")
 async def search_species(
-                   ids: Optional[Set[int]] = Query(None),
-                   name: Optional[str] = None,
-                   phage: Optional[bool] = None,
-                   source: Optional[str] = None,
+                   taxon_id: List[int] = Query(None),
+                   name: List[str] = Query(None),
+                   phage: Optional[bool] = Query(None),
+                   source: Optional[str] = Query(None),
                    db: Session = Depends(get_db)):
     """
     This functions searches a database and returns a list of species IDs for records in that database
@@ -70,9 +70,9 @@ async def search_species(
     """
 
     with error_handling():
-        log.debug("Received a vsearch/species request with parameters: {0}".format(locals()))
+        log.debug("Received a vsearch/species request")
 
-        species = get_species(db, ids, name, phage, source)
+        species = get_species(db, taxon_id, name, phage, source)
 
         if not species:
             log.debug("No Species match the search criteria.")
@@ -82,7 +82,7 @@ async def search_species(
         return species
 
 
-@api.get("/vsummary/species", response_model=List[Species_profile])
+@api.get("/vsummary/species", response_model=List[Species_profile], summary="Species summary")
 async def get_summary_species(taxon_id: List[int] = Query(None), db: Session = Depends(get_db)):
     """
     This function returns Species summaries for a list of taxon ids
@@ -106,7 +106,7 @@ async def get_summary_species(taxon_id: List[int] = Query(None), db: Session = D
         return species_summary
 
 
-@api.post("/vsummary/species", response_model=List[Species_profile])
+@api.post("/vsummary/species", response_model=List[Species_profile], summary="Species summary")
 async def post_summary_species(body: List[Species_ID], db: Session = Depends(get_db)):
     """
     This function returns Species summaries for a list of taxon ids
@@ -122,22 +122,22 @@ async def post_summary_species(body: List[Species_ID], db: Session = Depends(get
 @api.get("/vsearch/vog", response_model=List[VOG_UID])
 async def search_vog(
                id: Optional[Set[str]] = Query(None),
-               pmin: Optional[int] = None,
-               pmax: Optional[int] = None,
-               smax: Optional[int] = None,
-               smin: Optional[int] = None,
+               pmin: Optional[int] = Query(None),
+               pmax: Optional[int] = Query(None),
+               smax: Optional[int] = Query(None),
+               smin: Optional[int] = Query(None),
                functional_category: Optional[Set[str]] = Query(None),
                consensus_function: Optional[Set[str]] = Query(None),
-               mingLCA: Optional[int] = None,
-               maxgLCA: Optional[int] = None,
-               mingGLCA: Optional[int] = None,
-               maxgGLCA: Optional[int] = None,
+               mingLCA: Optional[int] = Query(None),
+               maxgLCA: Optional[int] = Query(None),
+               mingGLCA: Optional[int] = Query(None),
+               maxgGLCA: Optional[int] = Query(None),
                ancestors: Optional[Set[str]] = Query(None),
-               h_stringency: Optional[bool] = None,
-               m_stringency: Optional[bool] = None,
-               l_stringency: Optional[bool] = None,
-               virus_specific: Optional[bool] = None,
-               phages_nonphages: Optional[str] = None,
+               h_stringency: Optional[bool] = Query(None),
+               m_stringency: Optional[bool] = Query(None),
+               l_stringency: Optional[bool] = Query(None),
+               virus_specific: Optional[bool] = Query(None),
+               phages_nonphages: Optional[str] = Query(None),
                proteins: Optional[Set[str]] = Query(None),
                species: Optional[Set[str]] = Query(None),
                tax_id: Optional[Set[int]] = Query(None),
@@ -298,7 +298,7 @@ async def plain_vog_msa(id: str = Path(..., title="VOG id", min_length=8, regex=
 async def search_protein(species_name: Optional[Set[str]] = Query(None),
                          taxon_id: Optional[Set[int]] = Query(None),
                          VOG_id: Optional[Set[str]] = Query(None),
-                         sort: Optional[str] = 'ProteinID',
+                         sort: Optional[str] = Query('ProteinID'),
                          db: Session = Depends(get_db)):
     """
     This functions searches a database and returns a list of Protein IDs for records in the database

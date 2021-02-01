@@ -1,12 +1,12 @@
 import os
+import logging
 import gzip
-
+from typing import Optional, Set, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+
 from . import models
-from typing import Optional, Set, List
 from .taxa import ncbi_taxa
-import logging
 
 # get logger:
 log = logging.getLogger(__name__)
@@ -30,8 +30,8 @@ if those two criteria are not fulfilled, pydantic will throw an ValidationError
 
 
 def get_species(db: Session,
-                taxon_id: Optional[Set[int]],
-                species_name: Optional[str],
+                taxon_id: List[int],
+                species_name: List[str],
                 phage: Optional[bool],
                 source: Optional[str]):
     """
@@ -44,10 +44,11 @@ def get_species(db: Session,
     filters = []
 
     if taxon_id:
-        filters.append(table.taxon_id.in_(taxon_id))
+        filters.append(table.taxon_id.in_(set(taxon_id)))
 
     if species_name:
-        filters.append(table.species_name.like("%" + species_name + "%"))
+        for name in set(species_name):
+            filters.append(table.species_name.like("%" + name + "%"))
 
     if phage is not None:
         filters.append(table.phage.is_(phage))
