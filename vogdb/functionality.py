@@ -351,10 +351,10 @@ def find_vogs_hmm_by_uid(uid):
         log.error("No IDs were given.")
         raise ValueError("No IDs were given")
 
-    return [_hmm_content(id) for id in set(uid)]
+    return [hmm_content(id) for id in set(uid)]
 
 
-def _hmm_content(uid: str) -> str:
+def hmm_content(uid: str) -> str:
     try:
         return _load_gzipped_file_content(uid.upper(), "hmm", ".hmm.gz")
     except FileNotFoundError:
@@ -369,10 +369,10 @@ def find_vogs_msa_by_uid(uid):
         log.error("No IDs were given.")
         raise ValueError("No IDs were given")
 
-    return [_msa_content(id) for id in set(uid)]
+    return [msa_content(id) for id in set(uid)]
 
 
-def _msa_content(uid: str) -> str:
+def msa_content(uid: str) -> str:
     try:
         return _load_gzipped_file_content(uid.upper(), "raw_algs", ".msa.gz")
     except FileNotFoundError:

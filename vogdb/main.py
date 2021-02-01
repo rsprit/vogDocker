@@ -1,13 +1,14 @@
 import contextlib
-import sys
-from fastapi import HTTPException
+import logging
+
 from .functionality import *
 from .database import SessionLocal
 from sqlalchemy.orm import Session
-from fastapi import Depends, FastAPI, Query
+from fastapi import Depends, FastAPI, Query, Path, HTTPException
+from fastapi.responses import PlainTextResponse
 from .schemas import *
 from . import models
-import logging
+
 
 # configuring logging
 # ToDo: Take out file name to log to console, then have the docker container create a log file
@@ -339,3 +340,26 @@ async def fetch_protein_fna(db: Session = Depends(get_db), id: List[str] = Query
         else:
             log.info("Nucleotide sequences have been retrieved.")
         return protein_fna
+
+
+@api.get("/vplain/vog/hmm/{id}", response_class=PlainTextResponse, summary="Get the HMM")
+async def plain_vog_hmm(id: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
+    """
+    Get the Hidden Markov Matrix of the given VOG as plain text.
+    \f
+    :param id: VOGID
+    """
+
+    with error_handling():
+        return PlainTextResponse(hmm_content(id))
+
+@api.get("/vplain/vog/msa/{id}", response_class=PlainTextResponse, summary="Get the MSA")
+async def plain_vog_msa(id: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
+    """
+    Get the Multiple Sequence Alignment of the given VOG as plain text.
+    \f
+    :param id: VOGID
+    """
+
+    with error_handling():
+        return PlainTextResponse(msa_content(id))
