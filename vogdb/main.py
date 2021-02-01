@@ -204,6 +204,79 @@ async def post_summary_vog(vogs: List[VOG_UID], db: Session = Depends(get_db)):
         return vog_summary
 
 
+@api.get("/vfetch/vog/hmm", response_model=Dict[str,str])
+async def fetch_vog(id: List[str] = Query(None)):
+    """
+    This function returns the Hidden Markov Matrix (HMM) for a list of unique identifiers (UIDs)
+    \f
+    :param id: VOGID
+    :return: vog data (HMM profile)
+    """
+    with error_handling():
+        log.info("GET request vfetch/vog/hmm")
+        log.debug("Received a vfetch/vog/hmm request with parameters: {0}".format(id))
+
+        vog_hmm = find_vogs_hmm_by_uid(id)
+
+        if not vog_hmm:
+            log.error("No HMM found.")
+            raise HTTPException(status_code=404, detail="No HMM found.")
+        else:
+            log.info("HMM search successful.")
+        return vog_hmm
+
+
+@api.get("/vfetch/vog/msa", response_model=Dict[str,str])
+async def fetch_vog(id: List[str] = Query(None)):
+    """
+    This function returns the Multiple Sequence Alignment (MSA) for a list of unique identifiers (UIDs)
+    \f
+    :param id: VOGID
+    :return: vog data (MSA)
+    """
+    with error_handling():
+        log.info("GET request vfetch/vog/msa")
+        log.debug("Received a vfetch/vog/msa request with parameters: {0}".format(id))
+
+        vog_msa = find_vogs_msa_by_uid(id)
+
+        if not vog_msa:
+            log.error("No HMM found.")
+            raise HTTPException(status_code=404, detail="No MSA found.")
+        else:
+            log.info("MSA search successful.")
+        return vog_msa
+
+
+@api.get("/vplain/vog/hmm/{vog}", response_class=PlainTextResponse, summary="Get the HMM")
+async def plain_vog_hmm(vog: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
+    """
+    Get the Hidden Markov Matrix of the given VOG as plain text.
+    \f
+    :param vog: VOGID
+    """
+
+    with error_handling():
+        try:
+            return PlainTextResponse(hmm_content(vog))
+        except KeyError:
+            raise HTTPException(404, "Not found")
+
+
+@api.get("/vplain/vog/msa/{vog}", response_class=PlainTextResponse, summary="Get the MSA")
+async def plain_vog_msa(vog: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
+    """
+    Get the Multiple Sequence Alignment of the given VOG as plain text.
+    \f
+    :param vog: VOGID
+    """
+
+    with error_handling():
+        try:
+            return PlainTextResponse(msa_content(vog))
+        except KeyError:
+            raise HTTPException(404, "Not found")
+
 
 @api.get("/vsearch/protein/",
          response_model=List[ProteinID])
@@ -258,50 +331,6 @@ async def get_summary_protein(id: List[str] = Query(None), db: Session = Depends
         else:
             log.info("Proteins summaries have been retrieved.")
         return protein_summary
-
-
-@api.get("/vfetch/vog/hmm", response_model=Dict[str,str])
-async def fetch_vog(id: List[str] = Query(None)):
-    """
-    This function returns the Hidden Markov Matrix (HMM) for a list of unique identifiers (UIDs)
-    \f
-    :param id: VOGID
-    :return: vog data (HMM profile)
-    """
-    with error_handling():
-        log.info("GET request vfetch/vog/hmm")
-        log.debug("Received a vfetch/vog/hmm request with parameters: {0}".format(id))
-
-        vog_hmm = find_vogs_hmm_by_uid(id)
-
-        if not vog_hmm:
-            log.error("No HMM found.")
-            raise HTTPException(status_code=404, detail="No HMM found.")
-        else:
-            log.info("HMM search successful.")
-        return vog_hmm
-
-
-@api.get("/vfetch/vog/msa", response_model=Dict[str,str])
-async def fetch_vog(id: List[str] = Query(None)):
-    """
-    This function returns the Multiple Sequence Alignment (MSA) for a list of unique identifiers (UIDs)
-    \f
-    :param id: VOGID
-    :return: vog data (MSA)
-    """
-    with error_handling():
-        log.info("GET request vfetch/vog/msa")
-        log.debug("Received a vfetch/vog/msa request with parameters: {0}".format(id))
-
-        vog_msa = find_vogs_msa_by_uid(id)
-
-        if not vog_msa:
-            log.error("No HMM found.")
-            raise HTTPException(status_code=404, detail="No MSA found.")
-        else:
-            log.info("MSA search successful.")
-        return vog_msa
 
 
 @api.get("/vfetch/protein/faa",
@@ -364,32 +393,3 @@ async def fetch_protein_fna(db: Session = Depends(get_db), id: List[str] = Query
         else:
             log.info("Nucleotide sequences have been retrieved.")
         return protein_fna
-
-
-@api.get("/vog/{vog}/hmm", response_class=PlainTextResponse, summary="Get the HMM")
-async def plain_vog_hmm(vog: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
-    """
-    Get the Hidden Markov Matrix of the given VOG as plain text.
-    \f
-    :param vog: VOGID
-    """
-
-    with error_handling():
-        try:
-            return PlainTextResponse(hmm_content(vog))
-        except KeyError:
-            raise HTTPException(404, "Not found")
-
-@api.get("/vog/{vog}/msa", response_class=PlainTextResponse, summary="Get the MSA")
-async def plain_vog_msa(vog: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
-    """
-    Get the Multiple Sequence Alignment of the given VOG as plain text.
-    \f
-    :param vog: VOGID
-    """
-
-    with error_handling():
-        try:
-            return PlainTextResponse(msa_content(vog))
-        except KeyError:
-            raise HTTPException(404, "Not found")
