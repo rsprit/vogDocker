@@ -41,10 +41,6 @@ def error_handling():
         raise HTTPException(500, str(e)) from e
 
 
-# uncomment when we have a domain
-# redirected_app = HTTPToHTTPSRedirectMiddleware(api, host="example_domain.com")
-
-
 # Dependency. Connect to the database session
 def get_db():
     db = SessionLocal()
@@ -59,18 +55,19 @@ async def root():
     return {"message": "Welcome to VOGDB-API"}
 
 
-@api.get("/vsearch/species/",
-         response_model=List[Species_ID])
-async def search_species(db: Session = Depends(get_db),
+@api.get("/vsearch/species", response_model=List[Species_ID])
+async def search_species(
                    ids: Optional[Set[int]] = Query(None),
                    name: Optional[str] = None,
                    phage: Optional[bool] = None,
                    source: Optional[str] = None,
                    version: Optional[int] = None,
-                   sort: Optional[str] = 'SpeciesName'):
+                   sort: Optional[str] = 'SpeciesName',
+                   db: Session = Depends(get_db)):
     """
     This functions searches a database and returns a list of species IDs for records in that database
     which meet the search criteria.
+    \f
     :return: A List of Species IDs
     """
 
@@ -88,37 +85,48 @@ async def search_species(db: Session = Depends(get_db),
         return species
 
 
-@api.get("/vsummary/species/",
-         response_model=List[Species_profile])
+@api.get("/vsummary/species", response_model=List[Species_profile])
 async def get_summary_species(taxon_id: Optional[List[int]] = Query(None), db: Session = Depends(get_db)):
     """
     This function returns Species summaries for a list of taxon ids
+    \f
     :param taxon_id: Taxon ID
     :param db: database session dependency
     :return: Species summary
     """
 
     with error_handling():
-        log.info("GET request vsummary/species")
-        log.debug("Received a vsummary/species request with parameters: taxon_id = {0}".format(taxon_id))
+        log.debug("Received a vsummary/species GET with parameters: taxon_id = {0}".format(taxon_id))
 
         species_summary = find_species_by_id(db, taxon_id)
-
-        if not len(species_summary) == len(taxon_id):
-            log.warning("At least one of the species was not found, or there were duplicates.\n"
-                        "IDs given: {0}".format(taxon_id))
 
         if not species_summary:
             log.error("No matching Species found")
             raise HTTPException(status_code=404, detail="No matching Species found")
+        elif not len(species_summary) == len(taxon_id):
+            log.warning("At least one of the species was not found, or there were duplicates.\n"
+                        "IDs given: {0}".format(taxon_id))
         else:
             log.info("Species summaries have been retrieved.")
+
         return species_summary
 
 
-@api.get("/vsearch/vog/",
-         response_model=List[VOG_UID])
-async def search_vog(db: Session = Depends(get_db),
+@api.post("/vsummary/species", response_model=List[Species_profile])
+async def post_summary_species(body: List[Species_ID], db: Session = Depends(get_db)):
+    """
+    This function returns Species summaries for a list of taxon ids
+    \f
+    :param body: list of taxon ids as returned from search species
+    :param db: database session dependency
+    :return: list of Species profiles
+    """
+
+    return await get_summary_species([s.taxon_id for s in body], db)
+
+
+@api.get("/vsearch/vog", response_model=List[VOG_UID])
+async def search_vog(
                id: Optional[Set[str]] = Query(None),
                pmin: Optional[int] = None,
                pmax: Optional[int] = None,
@@ -140,10 +148,12 @@ async def search_vog(db: Session = Depends(get_db),
                species: Optional[Set[str]] = Query(None),
                tax_id: Optional[Set[int]] = Query(None),
                sort: Optional[str] = 'VOG_ID',
-               union: Optional[bool] = None):
+               union: Optional[bool] = None,
+               db: Session = Depends(get_db)):
     """
     This functions searches a database and returns a list of vog unique identifiers (UIDs) for records in that database
     which meet the search criteria.
+    \f
     :return: A List of VOG IDs
     """
     with error_handling():
@@ -161,20 +171,19 @@ async def search_vog(db: Session = Depends(get_db),
         return vogs
 
 
-@api.get("/vsummary/vog/",
-         response_model=List[VOG_profile])
-async def get_summary_vog(vogs: List[str] = Query(None), db: Session = Depends(get_db)):
+@api.get("/vsummary/vog", response_model=List[VOG_profile])
+async def get_summary_vog(id: List[str] = Query(None), db: Session = Depends(get_db)):
     """
     This function returns vog summaries for a list of unique identifiers (UIDs)
     \f
-    :param vogs: list of VOGIDs
+    :param id: list of VOGIDs
     :param db: database session dependency
     :return: list of VOG_profile
     """
     with error_handling():
-        log.debug("Received a vsummary/vog get with parameters: {0}".format(vogs))
+        log.debug("Received a vsummary/vog get with parameters: {0}".format(id))
 
-        vog_summary = find_vogs_by_uid(db, vogs)
+        vog_summary = find_vogs_by_uid(db, id)
         if not vog_summary:
             log.error("No matching VOGs found")
             raise HTTPException(status_code=404, detail="No matching VOGs found")
@@ -184,28 +193,19 @@ async def get_summary_vog(vogs: List[str] = Query(None), db: Session = Depends(g
 
 
 @api.post("/vsummary/vog", response_model=List[VOG_profile])
-async def post_summary_vog(vogs: List[VOG_UID], db: Session = Depends(get_db)):
+async def post_summary_vog(body: List[VOG_UID], db: Session = Depends(get_db)):
     """
     This function returns vog summaries for a list of unique identifiers (UIDs)
     \f
-    :param id: VOGID
+    :param body: list of VOG uids as returned from search_vog
     :param db: database session dependency
     :return: vog summary
     """
-    with error_handling():
-        log.debug("Received a vsummary/vog post with parameters: {0}".format(vogs))
-
-        vog_summary = find_vogs_by_uid(db, [vog.id for vog in vogs])
-        if not vog_summary:
-            log.error("No matching VOGs found")
-            raise HTTPException(status_code=404, detail="No matching VOGs found")
-        else:
-            log.info("VOG summaries have been retrieved.")
-        return vog_summary
+    return await get_summary_vog([vog.id for vog in body], db)
 
 
 @api.get("/vfetch/vog/hmm", response_model=Dict[str,str])
-async def fetch_vog(id: List[str] = Query(None)):
+async def get_fetch_vog_hmm(id: List[str] = Query(None)):
     """
     This function returns the Hidden Markov Matrix (HMM) for a list of unique identifiers (UIDs)
     \f
@@ -226,8 +226,19 @@ async def fetch_vog(id: List[str] = Query(None)):
         return vog_hmm
 
 
+@api.post("/vfetch/vog/hmm", response_model=Dict[str,str])
+async def post_fetch_vog_hmm(body: List[VOG_UID]):
+    """
+    This function returns the Hidden Markov Matrix (HMM) for a list of unique identifiers (UIDs)
+    \f
+    :param body: list of VOG uids as returned from search_vog
+    :return: vog data (HMM profile)
+    """
+    return await get_fetch_vog_hmm([vog.id for vog in body])
+
+
 @api.get("/vfetch/vog/msa", response_model=Dict[str,str])
-async def fetch_vog(id: List[str] = Query(None)):
+async def get_fetch_vog_msa(id: List[str] = Query(None)):
     """
     This function returns the Multiple Sequence Alignment (MSA) for a list of unique identifiers (UIDs)
     \f
@@ -248,8 +259,19 @@ async def fetch_vog(id: List[str] = Query(None)):
         return vog_msa
 
 
-@api.get("/vplain/vog/hmm/{vog}", response_class=PlainTextResponse, summary="Get the HMM")
-async def plain_vog_hmm(vog: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
+@api.post("/vfetch/vog/msa", response_model=Dict[str,str])
+async def post_fetch_vog_msa(body: List[VOG_UID]):
+    """
+    This function returns the Multiple Sequence Alignment (MSA) for VOGs
+    \f
+    :param body: list of VOG uids as returned from search_vog
+    :return: vog data (HMM profile)
+    """
+    return await get_fetch_vog_msa([vog.id for vog in body])
+
+
+@api.get("/vplain/vog/hmm/{id}", response_class=PlainTextResponse, summary="Get the HMM")
+async def plain_vog_hmm(id: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
     """
     Get the Hidden Markov Matrix of the given VOG as plain text.
     \f
@@ -258,13 +280,13 @@ async def plain_vog_hmm(vog: str = Path(..., title="VOG id", min_length=8, regex
 
     with error_handling():
         try:
-            return PlainTextResponse(hmm_content(vog))
+            return PlainTextResponse(hmm_content(id))
         except KeyError:
             raise HTTPException(404, "Not found")
 
 
-@api.get("/vplain/vog/msa/{vog}", response_class=PlainTextResponse, summary="Get the MSA")
-async def plain_vog_msa(vog: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
+@api.get("/vplain/vog/msa/{id}", response_class=PlainTextResponse, summary="Get the MSA")
+async def plain_vog_msa(id: str = Path(..., title="VOG id", min_length=8, regex="^VOG\d+$")):
     """
     Get the Multiple Sequence Alignment of the given VOG as plain text.
     \f
@@ -273,21 +295,21 @@ async def plain_vog_msa(vog: str = Path(..., title="VOG id", min_length=8, regex
 
     with error_handling():
         try:
-            return PlainTextResponse(msa_content(vog))
+            return PlainTextResponse(msa_content(id))
         except KeyError:
             raise HTTPException(404, "Not found")
 
 
-@api.get("/vsearch/protein/",
-         response_model=List[ProteinID])
-async def search_protein(db: Session = Depends(get_db),
-                         species_name: Optional[Set[str]] = Query(None),
+@api.get("/vsearch/protein", response_model=List[ProteinID])
+async def search_protein(species_name: Optional[Set[str]] = Query(None),
                          taxon_id: Optional[Set[int]] = Query(None),
                          VOG_id: Optional[Set[str]] = Query(None),
-                         sort: Optional[str] = 'ProteinID'):
+                         sort: Optional[str] = 'ProteinID',
+                         db: Session = Depends(get_db)):
     """
     This functions searches a database and returns a list of Protein IDs for records in the database
     matching the search criteria.
+    \f
     :param: species_name: full or partial name of a species
     :param: taxon_id: Taxnonomy ID of a species
     :param: VOG_id: ID of the VOG(s)
@@ -306,11 +328,11 @@ async def search_protein(db: Session = Depends(get_db),
         return proteins
 
 
-@api.get("/vsummary/protein/",
-         response_model=List[Protein_profile])
+@api.get("/vsummary/protein", response_model=List[Protein_profile])
 async def get_summary_protein(id: List[str] = Query(None), db: Session = Depends(get_db)):
     """
     This function returns protein summaries for a list of Protein identifiers (pids)
+    \f
     :param id: proteinID
     :param db: database session dependency
     :return: protein summary
@@ -333,11 +355,23 @@ async def get_summary_protein(id: List[str] = Query(None), db: Session = Depends
         return protein_summary
 
 
-@api.get("/vfetch/protein/faa",
-         response_model=List[AA_seq])
-async def fetch_protein_faa(db: Session = Depends(get_db), id: List[str] = Query(None)):
+@api.post("/vsummary/protein", response_model=List[Protein_profile])
+async def post_summary_protein(body: List[ProteinID], db: Session = Depends(get_db)):
+    """
+    This function returns protein summaries for a list of Protein identifiers (pids)
+    \f
+    :param body: proteinIDs as returned from search_protein
+    :param db: database session dependency
+    :return: list of protein summaries
+    """
+    return await get_summary_protein([p.id for p in body], db)
+
+
+@api.get("/vfetch/protein/faa", response_model=List[AA_seq])
+async def get_fetch_protein_faa(id: List[str] = Query(None), db: Session = Depends(get_db)):
     """
     This function returns Amino acid sequences for the proteins specified by the protein IDs
+    \f
     :param id: ProteinID(s)
     :param db: database session dependency
     :return: Amino acid sequences for the proteins
@@ -364,11 +398,23 @@ async def fetch_protein_faa(db: Session = Depends(get_db), id: List[str] = Query
         return protein_faa
 
 
-@api.get("/vfetch/protein/fna",
-         response_model=List[NT_seq])
-async def fetch_protein_fna(db: Session = Depends(get_db), id: List[str] = Query(None)):
+@api.post("/vfetch/protein/faa", response_model=List[AA_seq])
+async def post_fetch_protein_faa(body: List[ProteinID], db: Session = Depends(get_db)):
+    """
+    This function returns Amino acid sequences for the proteins specified by the protein IDs
+    \f
+    :param body: proteinIDs as returned from search_protein
+    :param db: database session dependency
+    :return: Amino acid sequences for the proteins
+    """
+    return await get_fetch_protein_faa([p.id for p in body], db)
+
+
+@api.get("/vfetch/protein/fna", response_model=List[NT_seq])
+async def get_fetch_protein_fna(id: List[str] = Query(None), db: Session = Depends(get_db)):
     """
     This function returns Nucleotide sequences for the genes specified by the protein IDs
+    \f
     :param id: ProteinID(s)
     :param db: database session dependency
     :return: Nucleotide sequences for the proteins
@@ -393,3 +439,15 @@ async def fetch_protein_fna(db: Session = Depends(get_db), id: List[str] = Query
         else:
             log.info("Nucleotide sequences have been retrieved.")
         return protein_fna
+
+@api.post("/vfetch/protein/fna", response_model=List[NT_seq])
+async def post_fetch_protein_fna(body: List[ProteinID], db: Session = Depends(get_db)):
+    """
+    This function returns Nucleotide sequences for the genes specified by the protein IDs
+    \f
+    :param body: proteinIDs as returned from search_protein
+    :param db: database session dependency
+    :return: Nucleotide sequences for the proteins
+    """
+    return await get_fetch_protein_fna([p.id for p in body], db)
+
