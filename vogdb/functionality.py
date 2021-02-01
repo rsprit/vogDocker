@@ -349,7 +349,7 @@ def find_proteins_by_id(db: Session, pids: Optional[List[str]]):
 def find_vogs_hmm_by_uid(uid):
     log.info("Searching for Hidden Markov Models (HMM) in the data files...")
 
-    file_name = "./data/vog.hmm.tar.gz"
+    file_name = os.path.join(os.environ.get("VOG_DATA", "data"), "vog.hmm.tar.gz")
 
     try:
         tar = tarfile.open(file_name, "r:gz")
@@ -381,7 +381,7 @@ def find_vogs_hmm_by_uid(uid):
 def find_vogs_msa_by_uid(uid):
     log.info("Searching for Multiple Sequence Alignments (MSA) in the data files...")
 
-    file_name = "./data/vog.raw_algs.tar.gz"
+    file_name = os.path.join(os.environ.get("VOG_DATA", "data"), "vog.raw_algs.tar.gz")
     try:
         tar = tarfile.open(file_name, "r:gz")
     except FileNotFoundError:
