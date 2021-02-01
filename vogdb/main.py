@@ -163,24 +163,46 @@ async def search_vog(db: Session = Depends(get_db),
 
 @api.get("/vsummary/vog/",
          response_model=List[VOG_profile])
-async def get_summary_vog(id: List[str] = Query(None), db: Session = Depends(get_db)):
+async def get_summary_vog(vogs: List[str] = Query(None), db: Session = Depends(get_db)):
     """
     This function returns vog summaries for a list of unique identifiers (UIDs)
-    :param id: VOGID
+    \f
+    :param vogs: list of VOGIDs
     :param db: database session dependency
-    :return: vog summary
+    :return: list of VOG_profile
     """
     with error_handling():
-        log.info("GET request vsummary/vog")
-        log.debug("Received a vsummary/vog request with parameters: {0}".format(locals()))
+        log.debug("Received a vsummary/vog get with parameters: {0}".format(vogs))
 
-        vog_summary = find_vogs_by_uid(db, id)
+        vog_summary = find_vogs_by_uid(db, vogs)
         if not vog_summary:
             log.error("No matching VOGs found")
             raise HTTPException(status_code=404, detail="No matching VOGs found")
         else:
             log.info("VOG summaries have been retrieved.")
         return vog_summary
+
+
+@api.post("/vsummary/vog", response_model=List[VOG_profile])
+async def post_summary_vog(vogs: List[VOG_UID], db: Session = Depends(get_db)):
+    """
+    This function returns vog summaries for a list of unique identifiers (UIDs)
+    \f
+    :param id: VOGID
+    :param db: database session dependency
+    :return: vog summary
+    """
+    with error_handling():
+        log.debug("Received a vsummary/vog post with parameters: {0}".format(vogs))
+
+        vog_summary = find_vogs_by_uid(db, [vog.id for vog in vogs])
+        if not vog_summary:
+            log.error("No matching VOGs found")
+            raise HTTPException(status_code=404, detail="No matching VOGs found")
+        else:
+            log.info("VOG summaries have been retrieved.")
+        return vog_summary
+
 
 
 @api.get("/vsearch/protein/",
