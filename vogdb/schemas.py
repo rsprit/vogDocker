@@ -26,13 +26,6 @@ class VOG_UID(BaseModel):
         orm_mode = True
 
 
-class ProteinID(BaseModel):
-    id: str
-
-    class Config:
-        orm_mode = True
-
-
 class Species_ID(BaseModel):
     taxon_id: int
 
@@ -40,8 +33,21 @@ class Species_ID(BaseModel):
         orm_mode = True
 
 
-class VOG_profile(BaseModel):
+class VOG_protein(BaseModel):
     id: str
+
+    class Config:
+        orm_mode = True
+
+
+class ProteinID(BaseModel):
+    id: str
+
+    class Config:
+        orm_mode = True
+
+
+class VOG_base(VOG_UID):
     protein_count: int
     species_count: int
     function: str
@@ -52,25 +58,20 @@ class VOG_profile(BaseModel):
     h_stringency: bool
     m_stringency: bool
     l_stringency: bool
-    proteins: str
 
     class Config:
         orm_mode = True
 
 
-class Protein_profile(BaseModel):
-    id: str
-    vog_id: str
-    taxon_id: int
-    species_name: str
+class VOG_profile(VOG_base):
+    proteins: List[ProteinID]
 
     class Config:
         orm_mode = True
 
 
-class Species_profile(BaseModel):
+class Species_base(Species_ID):
     species_name: str
-    taxon_id: int
     phage: str
     source: str
     version: int
@@ -79,16 +80,29 @@ class Species_profile(BaseModel):
         orm_mode = True
 
 
-class AA_seq(BaseModel):
-    id: str
+class Species_profile(Species_base):
+    proteins: List[ProteinID]
+
+    class Config:
+        orm_mode = True
+
+
+class Protein_profile(ProteinID):
+    vog: VOG_base
+    species: Species_base
+
+    class Config:
+        orm_mode = True
+
+
+class AA_seq(ProteinID):
     seq: str
 
     class Config:
         orm_mode = True
 
 
-class NT_seq(BaseModel):
-    id: str
+class NT_seq(ProteinID):
     seq: str
 
     class Config:

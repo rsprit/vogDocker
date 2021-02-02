@@ -141,7 +141,6 @@ async def search_vog(
                proteins: Optional[Set[str]] = Query(None),
                species: Optional[Set[str]] = Query(None),
                tax_id: Optional[Set[int]] = Query(None),
-               sort: Optional[str] = 'VOG_ID',
                union: Optional[bool] = None,
                db: Session = Depends(get_db)):
     """
@@ -151,17 +150,16 @@ async def search_vog(
     :return: A List of VOG IDs
     """
     with error_handling():
-        log.info("GET request vsearch/vog")
-        log.debug("Received a vsearch/vog request with parameters: {0}".format(locals()))
+        log.debug("Received a vsearch/vog request")
 
-        vogs = get_vogs(db, models.VOG_profile.id, id, pmin, pmax, smax, smin, functional_category, consensus_function,
+        vogs = get_vogs(db, id, pmin, pmax, smax, smin, functional_category, consensus_function,
                         mingLCA, maxgLCA, mingGLCA, maxgGLCA, ancestors, h_stringency, m_stringency, l_stringency,
-                        virus_specific, phages_nonphages, proteins, species, tax_id, sort, union)
+                        virus_specific, phages_nonphages, proteins, species, tax_id, union)
 
         if not vogs:
-            log.info("No VOGs match the search criteria.")
+            log.debug("No VOGs match the search criteria.")
         else:
-            log.info("VOGs have been retrieved.")
+            log.debug("VOGs have been retrieved.")
         return vogs
 
 
@@ -175,14 +173,15 @@ async def get_summary_vog(id: List[str] = Query(None), db: Session = Depends(get
     :return: list of VOG_profile
     """
     with error_handling():
-        log.debug("Received a vsummary/vog get with parameters: {0}".format(id))
+        log.debug("Received a vsummary/vog request")
 
         vog_summary = find_vogs_by_uid(db, id)
+
         if not vog_summary:
-            log.error("No matching VOGs found")
-            raise HTTPException(status_code=404, detail="No matching VOGs found")
+            log.debug("No matching VOGs found")
         else:
-            log.info("VOG summaries have been retrieved.")
+            log.debug("VOG summaries have been retrieved.")
+
         return vog_summary
 
 
@@ -207,16 +206,14 @@ async def get_fetch_vog_hmm(id: List[str] = Query(None)):
     :return: vog data (HMM profile)
     """
     with error_handling():
-        log.info("GET request vfetch/vog/hmm")
-        log.debug("Received a vfetch/vog/hmm request with parameters: {0}".format(id))
+        log.debug("Received a vfetch/vog/hmm request")
 
         vog_hmm = find_vogs_hmm_by_uid(id)
 
         if not vog_hmm:
-            log.error("No HMM found.")
-            raise HTTPException(status_code=404, detail="No HMM found.")
+            log.debug("No HMM found.")
         else:
-            log.info("HMM search successful.")
+            log.debug("HMM search successful.")
         return vog_hmm
 
 
@@ -240,16 +237,14 @@ async def get_fetch_vog_msa(id: List[str] = Query(None)):
     :return: vog data (MSA)
     """
     with error_handling():
-        log.info("GET request vfetch/vog/msa")
-        log.debug("Received a vfetch/vog/msa request with parameters: {0}".format(id))
+        log.debug("Received a vfetch/vog/msa request")
 
         vog_msa = find_vogs_msa_by_uid(id)
 
         if not vog_msa:
-            log.error("No HMM found.")
-            raise HTTPException(status_code=404, detail="No MSA found.")
+            log.debug("No HMM found.")
         else:
-            log.info("MSA search successful.")
+            log.debug("MSA search successful.")
         return vog_msa
 
 
@@ -365,24 +360,15 @@ async def get_fetch_protein_faa(id: List[str] = Query(None), db: Session = Depen
     :return: Amino acid sequences for the proteins
     """
     with error_handling():
-        log.info("GET request vfetch/protein/faa")
-        log.debug("Received a vfetch/protein/faa request with parameters: {0}".format(locals()))
+        log.debug("Received a vfetch/protein/faa request")
 
         protein_faa = find_protein_faa_by_id(db, id)
-    # except Exception as exc:
-    #     log.error("AA fetching not successful. IDs: {0}".format(id))
-    #     log.error(exc)
-    #     raise HTTPException(status_code=400, detail="Amino Acid retrieval not successful. {0}".format(exc))
-
-        if not len(protein_faa) == len(id):
-            log.warning("At least one of the proteins was not found, or there were duplicates.\n"
-                        "IDs given: {0}".format(id))
 
         if not protein_faa:
-            log.error("No Proteins found with the given IDs")
-            raise HTTPException(status_code=404, detail="No Proteins found with the given IDs")
+            log.debug("No Proteins found with the given IDs")
         else:
-            log.info("Aminoacid sequences have been retrieved.")
+            log.debug("Aminoacid sequences have been retrieved.")
+
         return protein_faa
 
 
@@ -408,24 +394,15 @@ async def get_fetch_protein_fna(id: List[str] = Query(None), db: Session = Depen
     :return: Nucleotide sequences for the proteins
     """
     with error_handling():
-        log.info("GET request vfetch/protein/fna")
-        log.debug("Received a vfetch/protein/fna request with parameters: {0}".format(locals()))
+        log.debug("Received a vfetch/protein/fna request")
 
         protein_fna = find_protein_faa_by_id(db, id)
-    # except Exception as exc:
-    #     log.error("NT fetching not successful. IDs: {0}".format(id))
-    #     log.error(exc)
-    #     raise HTTPException(status_code=400, detail="Nucleotide retrieval not successful. {0}".format(exc))
-
-        if not len(protein_fna) == len(id):
-            log.warning("At least one of the proteins was not found, or there were duplicates.\n"
-                        "IDs given: {0}".format(id))
 
         if not protein_fna:
-            log.error("No Proteins found with the given IDs")
-            raise HTTPException(status_code=404, detail="No Proteins found with the given ID")
+            log.debug("No Proteins found with the given IDs")
         else:
-            log.info("Nucleotide sequences have been retrieved.")
+            log.debug("Nucleotide sequences have been retrieved.")
+            
         return protein_fna
 
 @api.post("/vfetch/protein/fna", response_model=List[NT_seq])

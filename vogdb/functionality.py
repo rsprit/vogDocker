@@ -5,7 +5,7 @@ from typing import Dict, Optional, Set, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from . import models
+from .models import Species_profile, VOG_profile, Protein_profile, AA_seq, NT_seq
 from .taxa import ncbi_taxa
 
 # get logger:
@@ -39,24 +39,22 @@ def get_species(db: Session,
     """
     log.debug("Searching Species in the database...")
 
-    table = models.Species_profile
-
-    query = db.query(table.taxon_id)
+    query = db.query(Species_profile.taxon_id)
 
     if taxon_id:
-        query = query.filter(table.taxon_id.in_(set(taxon_id)))
+        query = query.filter(Species_profile.taxon_id.in_(set(taxon_id)))
 
     if species_name:
         for name in set(species_name):
-            query = query.filter(table.species_name.like("%" + name + "%"))
+            query = query.filter(Species_profile.species_name.like("%" + name + "%"))
 
     if phage is not None:
-        query = query.filter(table.phage == phage)
+        query = query.filter(Species_profile.phage == phage)
 
     if source:
-        query = query.filter(table.source.like("%" + source + "%"))
+        query = query.filter(Species_profile.source.like("%" + source + "%"))
 
-    return query.order_by(table.taxon_id).all()
+    return query.order_by(Species_profile.taxon_id).all()
 
 
 def find_species_by_id(db: Session, ids: List[int]):
@@ -65,14 +63,13 @@ def find_species_by_id(db: Session, ids: List[int]):
     """
     if ids:
         log.debug("Searching Species by IDs in the database...")
-        return db.query(models.Species_profile).filter(models.Species_profile.taxon_id.in_(ids)).all()
+        return db.query(Species_profile).filter(Species_profile.taxon_id.in_(ids)).all()
     else:
         log.debug("No IDs were given.")
         return list()
 
 
 def get_vogs(db: Session,
-             response_body,
              id: Optional[Set[str]],
              pmin: Optional[int],
              pmax: Optional[int],
@@ -93,17 +90,13 @@ def get_vogs(db: Session,
              proteins: Optional[Set[str]],
              species: Optional[Set[str]],
              tax_id: Optional[Set[int]],
-             sort: Optional[str],
-             union: Optional[bool],
-             ):
+             union: Optional[bool]):
     """
     This function searches the VOG based on the given query parameters
     """
     log.info("Searching VOGs in the database...")
 
-    result = db.query(response_body)
-    arguments = locals()
-    filters = []
+    result = db.query(VOG_profile.id)
 
     # make checks for validity of user input:
     def check_validity(pair):
@@ -137,86 +130,81 @@ def get_vogs(db: Session,
             log.error("The 'Union' Parameter was provided, but the number of taxonomy IDs is smaller than 2.")
             raise Exception("The 'Union' Parameter was provided, but the number of taxonomy IDs is smaller than 2.")
 
+    if id:
+        result = result.filter(VOG_profile.id.in_(id))
 
+    if consensus_function:
+        for d in set(consensus_function):
+            result = result.filter(VOG_profile.consensus_function.like("%" + d + "%"))
+
+    if function:
+        for d in set(function):
+            result = result.filter(VOG_profile.function.like("%" + d + "%"))
+
+    if smin is not None:
+        result = result.filter(VOG_profile.species_count >= smin)
+    if smax is not None:
+        result = result.filter(VOG_profile.species_count <= smax)
+
+    if pmin is not None:
+        result = result.filter(VOG_profile.protein_count >= pmin)
+    if pmax is not None:
+        result = result.filter(VOG_profile.protein_count <= pmax)
+
+    if mingLCA is not None:
+        result = result.filter(VOG_profile.genomes_total_in_LCA >= mingLCA)
+    if maxgLCA is not None:
+        result = result.filter(VOG_profile.genomes_total_in_LCA <= maxgLCA)
+    
+    if mingGLCA is not None:
+        result = result.filter(VOG_profile.genomes_in_group >= mingGLCA)
+    if maxgGLCA is not None:
+        result = result.filter(VOG_profile.genomes_in_group <= maxgGLCA)
+
+    if h_stringency is not None:
+        result = result.filter(VOG_profile.h_stringency == h_stringency)    
+    if m_stringency is not None:
+        result = result.filter(VOG_profile.m_stringency == m_stringency)    
+    if l_stringency is not None:
+        result = result.filter(VOG_profile.l_stringency == l_stringency)    
+    if virus_specific is not None:
+        result = result.filter(VOG_profile.virus_specific == virus_specific)    
+
+    if phages_nonphages:
+        for d in set(phages_nonphages):
+            result = result.filter(VOG_profile.phages_nonphages.like("%" + d + "%"))
+
+    if ancestors:
+        for d in set(ancestors):
+            result = result.filter(VOG_profile.ancestors.like("%" + d + "%"))
+
+    if proteins:
+        for d in set(proteins):
+            result = result.filter(VOG_profile.proteins.any(Protein_profile.id == d))
+
+    arguments = locals()
+    filters = []
     for key, value in arguments.items():  # type: str, any
         if value is not None:
-            if key == "id":
-                filters.append(getattr(models.VOG_profile, key).in_(value))
 
-            if key == "consensus_function":
-                for fct_d in value:
-                    d = "%" + fct_d + "%"
-                    filters.append(getattr(models.VOG_profile, key).like(d))
-
-            if key == "function":
-                for fct_d in value:
-                    d = "%" + fct_d + "%"
-                    filters.append(getattr(models.VOG_profile, key).like(d))
-
-            if key == "smax":
-                filters.append(getattr(models.VOG_profile, "species_count") < value + 1)
-
-            if key == "smin":
-                filters.append(getattr(models.VOG_profile, "species_count") > value - 1)
-
-            if key == "pmax":
-                filters.append(getattr(models.VOG_profile, "protein_count") < value + 1)
-
-            if key == "pmin":
-                filters.append(getattr(models.VOG_profile, "protein_count") > value - 1)
-
-            if key == "proteins":
-                for protein in value:
-                    p = "%" + protein + "%"
-                    filters.append(getattr(models.VOG_profile, key).like(p))
+            # if key == "proteins":
+            #     for protein in value:
+            #         p = "%" + protein + "%"
+            #         filters.append(getattr(VOG_profile, key).like(p))
 
             if key == "species":
                 if union is False:
                     # this is the INTERSECTION SEARCH:
-                    vog_ids = db.query().with_entities(models.Protein_profile.vog_id).join(models.Species_profile). \
-                        filter(models.Species_profile.species_name.in_(species)).group_by(
-                        models.Protein_profile.vog_id). \
-                        having(func.count(models.Species_profile.species_name) == len(species)).all()
+                    vog_ids = db.query().with_entities(Protein_profile.vog_id).join(Species_profile). \
+                        filter(Species_profile.species_name.in_(species)).group_by(Protein_profile.vog_id). \
+                        having(func.count(Species_profile.species_name) == len(species)).all()
                 else:
                     # UNION SEARCH below:
-                    vog_ids = db.query().with_entities(models.Protein_profile.vog_id).join(models.Species_profile). \
-                        filter(models.Species_profile.species_name.in_(species)).group_by(
-                        models.Protein_profile.vog_id).all()
+                    vog_ids = db.query().with_entities(Protein_profile.vog_id).join(Species_profile). \
+                        filter(Species_profile.species_name.in_(species)).group_by(Protein_profile.vog_id).all()
+
                 vog_ids = {id[0] for id in vog_ids}  # convert to set
-                filters.append(getattr(models.VOG_profile, "id").in_(vog_ids))
-
-            if key == "maxgLCA":
-                filters.append(getattr(models.VOG_profile, "genomes_total_in_LCA") < value + 1)
-
-            if key == "mingLCA":
-                filters.append(getattr(models.VOG_profile, "genomes_total_in_LCA") > value - 1)
-
-            if key == "maxgGLCA":
-                filters.append(getattr(models.VOG_profile, "genomes_in_group") < value + 1)
-
-            if key == "mingGLCA":
-                filters.append(getattr(models.VOG_profile, "genomes_in_group") > value - 1)
-
-            if key == "ancestors":
-                for anc in value:
-                    a = "%" + anc + "%"
-                    filters.append(getattr(models.VOG_profile, key).like(a))
-
-            if key == "h_stringency":
-                filters.append(getattr(models.VOG_profile, key).is_(value))
-
-            if key == "m_stringency":
-                filters.append(getattr(models.VOG_profile, key).is_(value))
-
-            if key == "l_stringency":
-                filters.append(getattr(models.VOG_profile, key).is_(value))
-
-            if key == "virus_specific":
-                filters.append(getattr(models.VOG_profile, key).is_(value))
-
-            if key == "phages_nonphages":
-                val = "%" + value + "%"
-                filters.append(getattr(models.VOG_profile, key).like(val))
+                filters.append(VOG_profile.id.in_(vog_ids))
 
             if key == "tax_id":
                 ncbi = ncbi_taxa()
@@ -228,14 +216,11 @@ def get_vogs(db: Session,
                             id_list.extend(
                                 ncbi.get_descendant_taxa(id, collapse_subspecies=False, intermediate_nodes=True))
                             id_list.append(id)
-                        vog_ids = db.query().with_entities(models.Protein_profile.vog_id).join(
-                            models.Species_profile). \
-                            filter(models.Species_profile.taxon_id.in_(id_list)).group_by(
-                            models.Protein_profile.vog_id). \
-                            filter(models.Species_profile.taxon_id.in_(id_list)).group_by(
-                            models.Protein_profile.vog_id).all()
+                        vog_ids = db.query().with_entities(Protein_profile.vog_id).join(Species_profile). \
+                            filter(Species_profile.taxon_id.in_(id_list)).group_by(Protein_profile.vog_id). \
+                            filter(Species_profile.taxon_id.in_(id_list)).group_by(Protein_profile.vog_id).all()
                         vog_ids = {id[0] for id in vog_ids}  # convert to set
-                        filters.append(getattr(models.VOG_profile, "id").in_(vog_ids))
+                        filters.append(getattr(VOG_profile, "id").in_(vog_ids))
                     else:
                         # INTERSECTION SEARCH:
                         for id in tax_id:
@@ -243,20 +228,15 @@ def get_vogs(db: Session,
                             id_list1.extend(
                                 ncbi.get_descendant_taxa(id, collapse_subspecies=False, intermediate_nodes=True))
                             id_list1.append(id)
-                            vog_ids = db.query().with_entities(models.Protein_profile.vog_id).join(
-                                models.Species_profile). \
-                                filter(models.Species_profile.taxon_id.in_(id_list1)).group_by(
-                                models.Protein_profile.vog_id). \
-                                filter(models.Species_profile.taxon_id.in_(id_list1)).group_by(
-                                models.Protein_profile.vog_id).all()
+                            vog_ids = db.query().with_entities(Protein_profile.vog_id).join(Species_profile). \
+                                filter(Species_profile.taxon_id.in_(id_list1)).group_by(Protein_profile.vog_id). \
+                                filter(Species_profile.taxon_id.in_(id_list1)).group_by(Protein_profile.vog_id).all()
                             vog_ids = {id[0] for id in vog_ids}  # convert to set
-                            filters.append(getattr(models.VOG_profile, "id").in_(vog_ids))
-                except ValueError as e:
+                            filters.append(getattr(VOG_profile, "id").in_(vog_ids))
+                except ValueError:
                     raise ValueError("The provided taxonomy ID is invalid: {0}".format(id))
 
-    result = result.filter(*filters).order_by(sort)
-
-    return result.all()
+    return result.filter(*filters).order_by(VOG_profile.id).all()
 
 
 def find_vogs_by_uid(db: Session, ids: Optional[List[str]]):
@@ -265,12 +245,13 @@ def find_vogs_by_uid(db: Session, ids: Optional[List[str]]):
     """
 
     if ids:
-        log.info("Searching VOGs by IDs in the database...")
-        results = db.query(models.VOG_profile).filter(models.VOG_profile.id.in_(ids)).all()
-        return results
+        log.debug("Searching VOGs by IDs in the database...")
+
+        return db.query(VOG_profile).filter(VOG_profile.id.in_(ids)).all()
     else:
-        log.error("No IDs were given.")
-        raise ValueError("No IDs were given.")
+        log.debug("No IDs were given.")
+
+        return list()
 
 
 def get_proteins(db: Session,
@@ -282,26 +263,20 @@ def get_proteins(db: Session,
     """
     log.debug("Searching Proteins in the database...")
 
-    table = models.Protein_profile
-
-    query = db.query(table.id)
+    query = db.query(Protein_profile.id)
 
     if taxon_id:
-        query = query.filter(table.taxon_id.in_(set(taxon_id)))
+        query = query.filter(Protein_profile.taxon_id.in_(set(taxon_id)))
 
     if vog_id:
-        query = query.filter(table.vog_id.in_(set(vog_id)))
+        query = query.filter(Protein_profile.vog_id.in_(set(vog_id)))
 
     if species:
-        # TODO this is a join once the mapping is correct
-        subquery = db.query(models.Species_profile.taxon_id)
-
+        query = query.join(Species_profile)
         for s in set(species):
-            subquery = subquery.filter(models.Species_profile.species_name.like("%" + s + "%"))
+            query = query.filter(Species_profile.species_name.like("%" + s + "%"))
 
-        query = query.filter(table.taxon_id.in_(subquery))
-
-    return query.order_by(table.id).all()
+    return query.order_by(Protein_profile.id).all()
 
 
 def find_proteins_by_id(db: Session, pids: List[str]):
@@ -311,16 +286,10 @@ def find_proteins_by_id(db: Session, pids: List[str]):
     if pids:
         log.debug("Searching Proteins by ProteinIDs in the database...")
 
-        # TODO this is a join once the mapping is correct
-        return db.query().with_entities(models.Protein_profile.id,
-                                        models.Protein_profile.vog_id,
-                                        models.Protein_profile.taxon_id,
-                                        models.Species_profile.species_name) \
-                .join(models.Species_profile) \
-                .filter(models.Protein_profile.id.in_(pids)) \
-                .all()
+        return db.query(Protein_profile).filter(Protein_profile.id.in_(pids)).all()
     else:
         log.debug("No IDs were given.")
+
         return list()
 
 
@@ -366,11 +335,12 @@ def find_protein_faa_by_id(db: Session, id: Optional[List[str]]):
     """
     if id:
         log.info("Searching AA sequence by ProteinIDs in the database...")
-        results = db.query(models.AA_seq).filter(models.AA_seq.id.in_(id)).all()
-        return results
+
+        return db.query(AA_seq).filter(AA_seq.id.in_(id)).all()
     else:
         log.error("No IDs were given.")
-        raise ValueError("No IDs were given.")
+
+        return list()
 
 
 def find_protein_fna_by_id(db: Session, id: Optional[List[str]]):
@@ -379,11 +349,12 @@ def find_protein_fna_by_id(db: Session, id: Optional[List[str]]):
     """
     if id:
         log.info("Searching NT sequence by ProteinIDs in the database...")
-        results = db.query(models.AA_seq).filter(models.AA_seq.id.in_(id)).all()
-        return results
+
+        return  db.query(NT_seq).filter(NT_seq.id.in_(id)).all()
     else:
         log.error("No IDs were given.")
-        raise ValueError("No IDs were given.")
+
+        return list()
 
 
 def _load_gzipped_file_content(id: str, prefix: str, suffix: str) -> str:
