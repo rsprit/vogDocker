@@ -2,7 +2,7 @@ import os
 import sys
 
 from ..database import database_url
-from .support import generate_db
+from . import load_frames, save_db_sql
 
 
 data_dir = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("VOG_DATA")
@@ -14,4 +14,6 @@ if not data_dir:
 if data_dir[:-1] != "/":
     data_dir += "/"
 
-generate_db(data_dir, database_url())
+vog, species, protein, member = load_frames(data_dir)
+
+save_db_sql(database_url(), vog, species, protein, member)

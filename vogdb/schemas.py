@@ -88,22 +88,10 @@ class Species_profile(Species_base):
 
 
 class Protein_profile(ProteinID):
-    vog: VOG_base
+    vogs: List[VOG_base]
     species: Species_base
-
-    class Config:
-        orm_mode = True
-
-
-class AA_seq(ProteinID):
-    seq: str
-
-    class Config:
-        orm_mode = True
-
-
-class NT_seq(ProteinID):
-    seq: str
+    aa_seq: str
+    nt_seq: str
 
     class Config:
         orm_mode = True

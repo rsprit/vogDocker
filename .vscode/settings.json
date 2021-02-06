@@ -1,5 +1,6 @@
 {
     "files.watcherExclude": {
         "**/data/**": true
-    }
+    },
+    "python.formatting.provider": "black"
 }
