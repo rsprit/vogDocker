@@ -3,10 +3,9 @@ lxml
 cryptography
 pandas
 sqlalchemy
-sqlalchemy-utils
 pymysql
 biopython
 uvicorn
-hypercorn
 fastapi
+ariadne
 
