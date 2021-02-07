@@ -10,7 +10,9 @@ typedefs = gql("""
 type Query {
     welcome: Welcome!
 
-    species(ids: [ID!], names: [String]): [Species]
+    species(ids: [ID!], names: [String!]): [Species!]
+
+    proteins(ids: [ID!], names: [String!]): [Protein!]
 }
 
 type Welcome {
@@ -52,7 +54,7 @@ async def resolve_welcome(*_):
     }
 
 @query.field("species")
-async def resolve_species(_, ctx, ids=None, names=None):
+async def resolve_species(*_, ids=None, names=None):
     query = SessionLocal().query(Species)
 
     if ids:
@@ -63,6 +65,20 @@ async def resolve_species(_, ctx, ids=None, names=None):
             query = query.filter(Species.species_name.like("%" + name + "%"))
 
     return query.order_by(Species.taxon_id).all()
+
+@query.field("proteins")
+async def resolve_proteins(*_, ids=None, names=None):
+    query = SessionLocal().query(Protein)
+
+    if ids:
+        query = query.filter(Protein.id.in_(ids))
+
+    if names:
+        query = query.join(Species)
+        for name in names:
+            query = query.filter(Species.species_name.like("%" + name + "%"))
+
+    return query.order_by(Protein.id).all()
 
 species = ObjectType("Species")
 species.set_alias("tax_id", "taxon_id")
