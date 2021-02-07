@@ -2,11 +2,14 @@ import contextlib
 import logging
 from typing import Dict, Set, Optional, List
 
-from .functionality import *
-from .database import SessionLocal
 from sqlalchemy.orm import Session
+
 from fastapi import Depends, FastAPI, Query, Path, HTTPException
 from fastapi.responses import PlainTextResponse
+
+from .functionality import *
+from .database import SessionLocal
+from .middleware import GZipMiddleware, DbSessionMiddleware
 from .schemas import *
 from . import models
 
@@ -22,6 +25,9 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(mod
 log = logging.getLogger(__name__)
 
 api = FastAPI()
+
+api.add_middleware(GZipMiddleware, minimum_size=1024)
+api.add_middleware(DbSessionMiddleware)
 
 from .graphql import app
 api.mount("/graphql", app)

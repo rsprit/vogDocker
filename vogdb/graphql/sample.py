@@ -1,6 +1,4 @@
-from vogdb.database import SessionLocal
 from vogdb.models import Species, Protein
-
 
 from ariadne import gql, ObjectType, QueryType, fallback_resolvers, make_executable_schema
 from ariadne.asgi import GraphQL
@@ -54,8 +52,10 @@ async def resolve_welcome(*_):
     }
 
 @query.field("species")
-async def resolve_species(*_, ids=None, names=None):
-    query = SessionLocal().query(Species)
+async def resolve_species(_, info, ids=None, names=None):
+    db = info.context["request"].state.db
+
+    query = db.query(Species)
 
     if ids:
         query = query.filter(Species.taxon_id.in_(ids))
@@ -67,8 +67,10 @@ async def resolve_species(*_, ids=None, names=None):
     return query.order_by(Species.taxon_id).all()
 
 @query.field("proteins")
-async def resolve_proteins(*_, ids=None, names=None):
-    query = SessionLocal().query(Protein)
+async def resolve_proteins(_, info, ids=None, names=None):
+    db = info.context["request"].state.db
+
+    query = db.query(Protein)
 
     if ids:
         query = query.filter(Protein.id.in_(ids))
