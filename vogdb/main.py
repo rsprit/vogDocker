@@ -23,6 +23,9 @@ log = logging.getLogger(__name__)
 
 api = FastAPI()
 
+from .graphql import app
+api.mount("/graphql", app)
+
 
 @contextlib.contextmanager
 def error_handling():
