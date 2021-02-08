@@ -254,7 +254,7 @@ def get_proteins(db: Session,
         query = query.filter(Protein.taxon_id.in_(set(taxon_id)))
 
     if vog_id:
-        query = query.filter(Protein.vog_id.in_(set(vog_id)))
+        query = query.join(Member).filter(Member.vog_id.in_(set(vog_id)))
 
     if species:
         query = query.join(Species)
