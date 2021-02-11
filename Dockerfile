@@ -4,9 +4,9 @@ RUN apt-get -qq update && \
     apt-get -qq install wget gzip
 
 WORKDIR /app
-COPY requirements.txt scripts/* /app/
-COPY vogdb/ /app/vogdb/
-RUN pip install -r requirements.txt
+COPY dist/vogdb-0.1.0-py3-none-any.whl /app/dist/
+COPY scripts/* /app/
+RUN pip install /app/dist/vogdb-0.1.0-py3-none-any.whl uvicorn
 
 ENTRYPOINT [ "/bin/bash" ]
 CMD [ "uvicorn" ]
